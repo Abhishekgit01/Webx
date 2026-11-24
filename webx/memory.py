@@ -1,7 +1,7 @@
 """Cross-tab and cross-run agent memory.
 
 The demo uses a local JSON file so it is reliable on stage. The same interface is
-used by the optional AWS/DynamoDB sync in :mod:`aegisweb.cloud`.
+used by the optional AWS/DynamoDB sync in :mod:`webx.cloud`.
 """
 
 from __future__ import annotations

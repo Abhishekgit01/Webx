@@ -27,31 +27,31 @@ CURSOR_SCRIPT = r"""
 (() => {
   if (window.top !== window.self) return;
   const install = () => {
-    if (!document.documentElement || document.getElementById('__aegis_cursor')) return;
+    if (!document.documentElement || document.getElementById('__webx_cursor')) return;
     const style = document.createElement('style');
-    style.id = '__aegis_cursor_style';
+    style.id = '__webx_cursor_style';
     style.textContent = `
-      #__aegis_cursor, #__aegis_cursor_ring {
+      #__webx_cursor, #__webx_cursor_ring {
         position: fixed; left: 0; top: 0; z-index: 2147483647;
         pointer-events: none; opacity: 0; will-change: transform;
         transform: translate3d(-60px, -60px, 0);
         transition: opacity 120ms ease;
       }
-      #__aegis_cursor {
+      #__webx_cursor {
         width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%;
         background: #d8ff63; border: 2px solid #0e2a1e;
         box-shadow: 0 0 0 2px rgba(255,255,255,.7), 0 3px 12px rgba(0,0,0,.35);
       }
-      #__aegis_cursor_ring {
+      #__webx_cursor_ring {
         width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%;
         border: 1.5px solid rgba(20,36,28,.75); background: rgba(216,255,99,.10);
         transition: opacity 120ms ease, transform 90ms linear, width 180ms ease, height 180ms ease;
       }
-      #__aegis_cursor_ring.pulse {
+      #__webx_cursor_ring.pulse {
         width: 52px; height: 52px; margin: -26px 0 0 -26px;
         border-color: rgba(216,255,99,.95); background: rgba(216,255,99,.26);
       }
-      .__aegis_clicked {
+      .__webx_clicked {
         outline: 3px solid #d8ff63 !important;
         outline-offset: 3px !important;
         transition: outline-color 120ms ease !important;
@@ -60,9 +60,9 @@ CURSOR_SCRIPT = r"""
     document.documentElement.appendChild(style);
 
     const dot = document.createElement('div');
-    dot.id = '__aegis_cursor';
+    dot.id = '__webx_cursor';
     const ring = document.createElement('div');
-    ring.id = '__aegis_cursor_ring';
+    ring.id = '__webx_cursor_ring';
     document.documentElement.appendChild(ring);
     document.documentElement.appendChild(dot);
 
@@ -84,8 +84,8 @@ CURSOR_SCRIPT = r"""
       setTimeout(() => ring.classList.remove('pulse'), 240);
       const hit = event.target && event.target.closest ? event.target.closest('button, a, input, textarea, [role="button"]') : null;
       if (hit) {
-        hit.classList.add('__aegis_clicked');
-        setTimeout(() => hit.classList.remove('__aegis_clicked'), 360);
+        hit.classList.add('__webx_clicked');
+        setTimeout(() => hit.classList.remove('__webx_clicked'), 360);
       }
     };
     window.addEventListener('pointermove', onMove, { capture: true, passive: true });
@@ -101,7 +101,7 @@ CURSOR_SCRIPT = r"""
 
 def candidate_browsers() -> list[str]:
     values: list[str] = []
-    env_path = os.getenv("AEGIS_CHROME_PATH")
+    env_path = os.getenv("WEBX_CHROME_PATH")
     if env_path:
         values.append(env_path)
     if sys.platform.startswith("win"):
@@ -199,7 +199,7 @@ class BrowserSession:
         if self.browser is None:
             self._pw.stop()
             hint = (
-                "No usable Chrome/Chromium found. Install Google Chrome, set AEGIS_CHROME_PATH, "
+                "No usable Chrome/Chromium found. Install Google Chrome, set WEBX_CHROME_PATH, "
                 "or run: python -m playwright install chromium"
             )
             raise RuntimeError(hint + ("\n" + "\n".join(errors) if errors else ""))
@@ -266,13 +266,13 @@ class BrowserSession:
             # with finite animations fast-forwarded for crisp documentation shots.
             page.wait_for_timeout(160)
             try:
-                page.evaluate("document.querySelectorAll('.__aegis_clicked').forEach((el) => el.classList.remove('__aegis_clicked'))")
+                page.evaluate("document.querySelectorAll('.__webx_clicked').forEach((el) => el.classList.remove('__webx_clicked'))")
             except Exception:
                 pass
             if hide_cursor:
                 try:
                     page.evaluate(
-                        "document.querySelectorAll('#__aegis_cursor, #__aegis_cursor_ring').forEach((el) => { el.style.visibility = 'hidden'; })"
+                        "document.querySelectorAll('#__webx_cursor, #__webx_cursor_ring').forEach((el) => { el.style.visibility = 'hidden'; })"
                     )
                 except Exception:
                     pass
@@ -283,7 +283,7 @@ class BrowserSession:
             if hide_cursor:
                 try:
                     page.evaluate(
-                        "document.querySelectorAll('#__aegis_cursor, #__aegis_cursor_ring').forEach((el) => { el.style.visibility = 'visible'; })"
+                        "document.querySelectorAll('#__webx_cursor, #__webx_cursor_ring').forEach((el) => { el.style.visibility = 'visible'; })"
                     )
                 except Exception:
                     pass

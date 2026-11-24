@@ -1,4 +1,4 @@
-"""AegisWeb run-memory Lambda.
+"""Webx run-memory Lambda.
 
 Routes (behind API Gateway HTTP API):
   POST /runs           store a run record
@@ -6,7 +6,7 @@ Routes (behind API Gateway HTTP API):
   GET  /runs           list the most recent records
 
 DynamoDB is the only AWS dependency; boto3 is provided by the Lambda runtime.
-The optional AEGIS_API_TOKEN shared secret is enforced when configured.
+The optional WEBX_API_TOKEN shared secret is enforced when configured.
 """
 
 from __future__ import annotations
@@ -21,8 +21,8 @@ from typing import Any
 import boto3
 from botocore.exceptions import ClientError
 
-TABLE_NAME = os.environ.get("TABLE_NAME", "aegisweb-runs")
-API_TOKEN = os.environ.get("AEGIS_API_TOKEN", "").strip()
+TABLE_NAME = os.environ.get("TABLE_NAME", "webx-runs")
+API_TOKEN = os.environ.get("WEBX_API_TOKEN", "").strip()
 ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*").strip() or "*"
 RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$")
 MAX_BODY_BYTES = 48_000
@@ -62,7 +62,7 @@ def _authorized(event: dict[str, Any]) -> bool:
     if not API_TOKEN:
         return True
     headers = {str(key).lower(): value for key, value in (event.get("headers") or {}).items()}
-    supplied = str(headers.get("authorization") or headers.get("x-aegis-token") or "").strip()
+    supplied = str(headers.get("authorization") or headers.get("x-webx-token") or "").strip()
     if supplied.lower().startswith("bearer "):
         supplied = supplied[7:].strip()
     return supplied == API_TOKEN
@@ -184,12 +184,12 @@ def lambda_handler(event: dict[str, Any], _context: Any = None) -> dict[str, Any
         if path.startswith("/runs/") and method == "GET":
             return _get(path.split("/", 2)[2])
         if path in {"/", "/health"} and method == "GET":
-            return response(200, {"ok": True, "service": "aegisweb-memory", "table": TABLE_NAME})
+            return response(200, {"ok": True, "service": "webx-memory", "table": TABLE_NAME})
         return response(404, {"ok": False, "error": "not found"})
     except json.JSONDecodeError:
         return response(400, {"ok": False, "error": "body must be valid JSON"})
     except ValueError as exc:
         return response(400, {"ok": False, "error": str(exc)})
     except Exception as exc:  # noqa: BLE001 - never leak a stack trace to the API
-        print(f"aegisweb-memory error: {exc!r}")
+        print(f"webx-memory error: {exc!r}")
         return response(500, {"ok": False, "error": "internal error"})

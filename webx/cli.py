@@ -1,4 +1,4 @@
-"""AegisWeb command line: demo, mission control, doctor."""
+"""Webx command line: demo, mission control, doctor."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import shutil
 import sys
 
 from . import __version__
-from .agent import AegisAgent
+from .agent import WebxAgent
 from .browser import find_browser
 from .config import PROJECT_ROOT, load_settings
 from .console import print_banner, print_summary, render_event
@@ -55,7 +55,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
         print()
 
     try:
-        agent = AegisAgent(settings, bus)
+        agent = WebxAgent(settings, bus)
         result = agent.run(args.task)
     except KeyboardInterrupt:
         print("\n  Mission interrupted.")
@@ -95,7 +95,7 @@ def cmd_doctor(_args: argparse.Namespace) -> int:
     python = sys.version.split()[0]
     browser = find_browser(settings)
     print()
-    print("  AEGISWEB / DOCTOR")
+    print("  WEBX / DOCTOR")
     print("  " + "─" * 58)
     print(f"  python        {python}")
     print(f"  project       {PROJECT_ROOT}")
@@ -111,13 +111,13 @@ def cmd_doctor(_args: argparse.Namespace) -> int:
     print(f"    OPENAI_API_KEY       {'set' if settings.openai_api_key else 'not set (optional)'}")
     print(f"    ANTHROPIC_API_KEY    {'set' if settings.anthropic_api_key else 'not set (optional)'}")
     print(f"    ELEVENLABS_API_KEY   {'set' if settings.elevenlabs_api_key else 'not set (optional)'}")
-    print(f"    AEGIS_CLOUD_URL      {'set' if settings.cloud_url else 'not set (optional)'}")
+    print(f"    WEBX_CLOUD_URL       {'set' if settings.cloud_url else 'not set (optional)'}")
     print()
     voice_files = list((PROJECT_ROOT / "assets" / "voice").glob("*.mp3"))
     print(f"  voice pack    {len(voice_files)} file(s) in assets/voice/")
     print()
     ok = bool(browser)
-    print("  " + ("READY — run `python -m aegisweb demo` or `python -m aegisweb serve`" if ok else
+    print("  " + ("READY — run `python -m webx demo` or `python -m webx serve`" if ok else
                   "MISSING BROWSER — install Chrome or run: python -m playwright install chromium"))
     print()
     return 0 if ok else 1
@@ -130,10 +130,10 @@ def cmd_tts(tts_args: list[str]) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="aegisweb",
-        description="AegisWeb — AI browser agent for privacy, navigation, and cross-tab work.",
+        prog="webx",
+        description="Webx — AI browser agent for privacy, navigation, and cross-tab work.",
     )
-    parser.add_argument("--version", action="version", version=f"AegisWeb {__version__}")
+    parser.add_argument("--version", action="version", version=f"Webx {__version__}")
     sub = parser.add_subparsers(dest="command")
 
     demo = sub.add_parser("demo", help="Run the deterministic storefront → form mission")

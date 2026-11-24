@@ -24,14 +24,14 @@ python scripts/generate_tts.py
 Or drop a single finished line at `assets/voice/complete.mp3` and enable audio:
 
 ```bash
-python -m aegisweb demo --audio
+python -m webx demo --audio
 ```
 
 You can also point the completion hook at any file:
 
 ```bash
-export AEGIS_COMPLETION_AUDIO=/path/to/your/finish-line.mp3
-python -m aegisweb demo --audio
+export WEBX_COMPLETION_AUDIO=/path/to/your/finish-line.mp3
+python -m webx demo --audio
 ```
 
 Audio playback uses `ffplay` (ffmpeg) when available. If no audio file, key, or

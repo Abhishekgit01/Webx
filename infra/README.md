@@ -1,13 +1,13 @@
-# AegisWeb run memory on AWS
+# Webx run memory on AWS
 
-This is the optional cloud half of AegisWeb's cross-run memory. The stage demo is
+This is the optional cloud half of Webx's cross-run memory. The stage demo is
 fully local: **you do not need AWS, credentials, or a deployment** to run it.
 
-When `AEGIS_CLOUD_URL` is set, the agent POSTs a compact run record after each
+When `WEBX_CLOUD_URL` is set, the agent POSTs a compact run record after each
 mission. That gives the project a real, inspectable AWS path:
 
 ```
-AegisWeb agent ──POST /runs──▶ API Gateway HTTP API ──▶ Lambda ──▶ DynamoDB
+Webx agent ──POST /runs──▶ API Gateway HTTP API ──▶ Lambda ──▶ DynamoDB
                                    (CORS, stage)        (handler.py)   (runId key)
 ```
 
@@ -18,9 +18,9 @@ Cloud sync is best-effort and a failure never fails the mission.
 
 | Resource | Purpose |
 | --- | --- |
-| `AegisHttpApi` | HTTP API with CORS, routes `POST /runs`, `GET /runs`, `GET /runs/{runId}` |
-| `AegisMemoryFunction` | Python 3.12 Lambda in `lambda/handler.py` |
-| `AegisRunsTable` | On-demand DynamoDB table, encrypted at rest, partition key `runId` |
+| `WebxHttpApi` | HTTP API with CORS, routes `POST /runs`, `GET /runs`, `GET /runs/{runId}` |
+| `WebxMemoryFunction` | Python 3.12 Lambda in `lambda/handler.py` |
+| `WebxRunsTable` | On-demand DynamoDB table, encrypted at rest, partition key `runId` |
 
 ## Deploy
 
@@ -33,7 +33,7 @@ cd infra
 sam validate --lint
 sam build
 sam deploy --guided \
-  --stack-name aegisweb-memory \
+  --stack-name webx-memory \
   --parameter-overrides StageName=prod AllowedOrigin='*' ApiToken=''
 ```
 
@@ -41,28 +41,28 @@ For a shared/public deployment, set a bearer token and restrict CORS:
 
 ```bash
 sam deploy --guided \
-  --stack-name aegisweb-memory \
+  --stack-name webx-memory \
   --parameter-overrides StageName=prod \
     AllowedOrigin='https://your-dashboard.example' \
     ApiToken='long-random-shared-secret'
 ```
 
 `ApiToken` is `NoEcho`, so CloudFormation will not display it. The agent sends it
-as `Authorization: Bearer <token>` from `AEGIS_CLOUD_TOKEN`.
+as `Authorization: Bearer <token>` from `WEBX_CLOUD_TOKEN`.
 
-## Wire it into AegisWeb
+## Wire it into Webx
 
 Copy the `RunsEndpoint` output and add it to `.env`:
 
 ```bash
-AEGIS_CLOUD_URL=https://abc123.execute-api.us-east-1.amazonaws.com/prod/runs
-AEGIS_CLOUD_TOKEN=              # only if ApiToken is set
+WEBX_CLOUD_URL=https://abc123.execute-api.us-east-1.amazonaws.com/prod/runs
+WEBX_CLOUD_TOKEN=              # only if ApiToken is set
 ```
 
 Then run the normal demo:
 
 ```bash
-python -m aegisweb demo --headless
+python -m webx demo --headless
 ```
 
 The trace gains `Cloud memory synced` and `run.json` gains a `cloud_sync` field.
@@ -123,7 +123,7 @@ With PAY_PER_REQUEST and a 256 MB Lambda, the demo stays inside the AWS free tie
 for normal use. To remove everything:
 
 ```bash
-aws cloudformation delete-stack --stack-name aegisweb-memory
+aws cloudformation delete-stack --stack-name webx-memory
 ```
 
 DynamoDB point-in-time recovery is intentionally disabled to keep the demo cheap.

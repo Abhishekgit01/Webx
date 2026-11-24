@@ -8,10 +8,10 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from aegisweb.browser import find_browser
-from aegisweb.config import Settings
-from aegisweb.dashboard import create_app
-from aegisweb.demo_server import DemoServer
+from webx.browser import find_browser
+from webx.config import Settings
+from webx.dashboard import create_app
+from webx.demo_server import DemoServer
 
 
 @pytest.fixture()

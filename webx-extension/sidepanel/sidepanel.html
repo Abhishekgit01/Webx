@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Webx — Mission Control</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40">
+            <path d="M20 4 33 9v10c0 8-5.7 14.5-13 17C12.7 33.5 7 27 7 19V9l13-5Z" fill="none" stroke="currentColor" stroke-width="2.2"/>
+            <path d="M14 20.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <strong>Webx</strong>
+          <small>Voice browser agent</small>
+        </span>
+      </div>
+      <div class="topbar-actions">
+        <button class="engine-pill" id="engine-pill" type="button" title="Open voice settings">Browser voice</button>
+        <button class="icon-button" id="settings-button" type="button" aria-label="Open settings" title="Settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 8.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2Z" fill="none" stroke="currentColor" stroke-width="1.7"/>
+            <path d="M19.4 13.3a7.8 7.8 0 0 0 0-2.6l2-1.5-2-3.4-2.5 1a8 8 0 0 0-2.2-1.3L14.3 3h-4l-.4 2.5a8 8 0 0 0-2.2 1.3l-2.5-1-2 3.4 2 1.5a7.8 7.8 0 0 0 0 2.6l-2 1.5 2 3.4 2.5-1a8 8 0 0 0 2.2 1.3l.4 2.5h4l.4-2.5a8 8 0 0 0 2.2-1.3l2.5 1 2-3.4-2-1.5Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-meta">
+          <span class="eyebrow">Mission control</span>
+          <span class="state-pill state-idle" id="state-pill">
+            <span class="state-dot" aria-hidden="true"></span>
+            <span id="state-label">Idle</span>
+          </span>
+        </div>
+        <h1 id="hero-title">Point. Speak. <em>Done.</em></h1>
+        <p class="hero-sub" id="status-copy">Open a product page, then ask Webx to move the price into your target form.</p>
+
+        <div class="voice-zone" id="voice-zone">
+          <span class="voice-orbit" aria-hidden="true"></span>
+          <button class="mic-button" id="mic-button" type="button" aria-label="Start voice command" aria-pressed="false">
+            <svg class="mic-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="8.5" y="3.5" width="7" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M5.8 11.5a6.2 6.2 0 0 0 12.4 0M12 17.7v3M8.8 20.7h6.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <span class="mic-stop" aria-hidden="true"></span>
+          </button>
+          <span class="waveform" id="waveform" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </span>
+        </div>
+
+        <p class="transcript" id="transcript" aria-live="polite">Tap to speak, or type a command below.</p>
+        <p class="voice-note" id="voice-note">Text commands always work. Voice uses ElevenLabs when configured, then your browser.</p>
+      </section>
+
+      <form class="command-bar" id="command-form">
+        <label class="sr-only" for="command-input">Command</label>
+        <input id="command-input" name="command" type="text" placeholder="Get price and apply to target sheet" autocomplete="off" spellcheck="false">
+        <button class="send-button" type="submit" aria-label="Run command">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 12h14M12 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </form>
+
+      <div class="quick-actions" role="group" aria-label="Quick actions">
+        <button class="chip chip-primary" type="button" data-action="mission">Run mission</button>
+        <button class="chip" type="button" data-action="privacy">Reject cookies</button>
+        <button class="chip" type="button" data-action="capture">Capture price</button>
+        <button class="chip" type="button" data-action="fill">Fill form</button>
+        <button class="chip" type="button" data-action="reset">Reset</button>
+      </div>
+
+      <section class="card runbook" aria-labelledby="runbook-title">
+        <div class="card-head">
+          <h2 id="runbook-title">Runbook</h2>
+          <span class="mono" id="run-time">—</span>
+        </div>
+        <ol class="timeline" id="timeline">
+          <li class="step" data-phase="consent" data-state="idle">
+            <span class="step-index">01</span>
+            <span class="step-copy"><strong>Privacy sentinel</strong><small id="phase-consent">Waiting</small></span>
+            <span class="step-mark" aria-hidden="true"></span>
+          </li>
+          <li class="step" data-phase="capture" data-state="idle">
+            <span class="step-index">02</span>
+            <span class="step-copy"><strong>Context capture</strong><small id="phase-capture">Waiting</small></span>
+            <span class="step-mark" aria-hidden="true"></span>
+          </li>
+          <li class="step" data-phase="handoff" data-state="idle">
+            <span class="step-index">03</span>
+            <span class="step-copy"><strong>Cross-tab handoff</strong><small id="phase-handoff">Waiting</small></span>
+            <span class="step-mark" aria-hidden="true"></span>
+          </li>
+          <li class="step" data-phase="fill" data-state="idle">
+            <span class="step-index">04</span>
+            <span class="step-copy"><strong>Form fill</strong><small id="phase-fill">Waiting</small></span>
+            <span class="step-mark" aria-hidden="true"></span>
+          </li>
+          <li class="step" data-phase="verify" data-state="idle">
+            <span class="step-index">05</span>
+            <span class="step-copy"><strong>Receipt verify</strong><small id="phase-verify">Waiting</small></span>
+            <span class="step-mark" aria-hidden="true"></span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="card capture" aria-labelledby="capture-title">
+        <div class="card-head">
+          <h2 id="capture-title">Captured data</h2>
+          <span class="tag" id="capture-method">No data</span>
+        </div>
+        <p class="empty" id="capture-empty">No price captured yet. Run a mission or capture a price from the active tab.</p>
+        <div class="capture-body" id="capture-body" hidden>
+          <p class="capture-price" id="capture-price">$0.00</p>
+          <p class="capture-product" id="capture-product">—</p>
+          <a class="capture-source" id="capture-source" href="#" target="_blank" rel="noreferrer">—</a>
+          <p class="capture-meta" id="capture-meta">—</p>
+        </div>
+        <div class="metrics">
+          <div class="metric"><strong id="metric-trackers">0</strong><span>Trackers blocked</span></div>
+          <div class="metric"><strong id="metric-tabs">0</strong><span>Tabs orchestrated</span></div>
+          <div class="metric"><strong id="metric-duration">0.0s</strong><span>Run time</span></div>
+        </div>
+      </section>
+
+      <section class="card activity" aria-labelledby="activity-title">
+        <div class="card-head">
+          <h2 id="activity-title">Activity</h2>
+          <button class="text-button" id="clear-log" type="button">Clear view</button>
+        </div>
+        <p class="empty" id="log-empty">Events appear here as the agent works.</p>
+        <ul class="log-list" id="log-list" aria-live="polite"></ul>
+      </section>
+
+      <section class="cloud" aria-labelledby="cloud-title">
+        <div class="cloud-copy">
+          <h2 id="cloud-title">Run memory</h2>
+          <p id="cloud-status">Local only</p>
+        </div>
+        <button class="text-button" id="cloud-sync" type="button">Sync</button>
+      </section>
+
+      <footer class="footer">
+        <button class="text-button" id="open-demo" type="button">Open local storefront</button>
+        <span>Local-first · no telemetry</span>
+      </footer>
+    </main>
+  </div>
+
+  <dialog class="settings-dialog" id="settings-dialog" aria-labelledby="settings-title">
+    <form class="settings-form" id="settings-form">
+      <header class="settings-head">
+        <div>
+          <p class="eyebrow">Configuration</p>
+          <h2 id="settings-title">Settings</h2>
+        </div>
+        <button class="icon-button" id="settings-close" type="button" aria-label="Close settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </header>
+
+      <div class="settings-body">
+        <section class="settings-section">
+          <h3>Voice</h3>
+          <p class="field-note">ElevenLabs is optional. Without a key, Webx uses the browser's speech APIs. Text commands always work.</p>
+          <label class="field">
+            <span>ElevenLabs API key</span>
+            <input id="settings-key" type="password" autocomplete="off" spellcheck="false" placeholder="xi-…">
+          </label>
+          <div class="field-row">
+            <label class="field">
+              <span>Voice ID</span>
+              <input id="settings-voice" type="text" autocomplete="off" spellcheck="false" placeholder="21m00Tcm4TlvDq8ikWAM">
+            </label>
+            <label class="field">
+              <span>TTS model</span>
+              <input id="settings-tts-model" type="text" autocomplete="off" spellcheck="false" placeholder="eleven_turbo_v2_5">
+            </label>
+          </div>
+          <label class="field">
+            <span>STT model</span>
+            <input id="settings-stt-model" type="text" autocomplete="off" spellcheck="false" placeholder="scribe_v1">
+          </label>
+          <label class="check-row">
+            <input id="settings-speak" type="checkbox">
+            <span>Speak mission confirmations aloud</span>
+          </label>
+        </section>
+
+        <section class="settings-section">
+          <h3>Orchestration</h3>
+          <label class="field">
+            <span>Target form URL</span>
+            <input id="settings-target" type="url" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:4173/form/">
+          </label>
+          <label class="check-row">
+            <input id="settings-auto-consent" type="checkbox">
+            <span>Reject consent banners automatically</span>
+          </label>
+          <p class="field-note">The local demo target is the research form started by <code>./run_demo.sh</code>.</p>
+        </section>
+
+        <section class="settings-section">
+          <h3>Run memory (AWS)</h3>
+          <p class="field-note">Optional API Gateway endpoint for verified run summaries. Failures never block a mission.</p>
+          <label class="field">
+            <span>API Gateway endpoint</span>
+            <input id="settings-cloud" type="url" autocomplete="off" spellcheck="false" placeholder="https://…/prod/runs">
+          </label>
+          <label class="field">
+            <span>Bearer token</span>
+            <input id="settings-token" type="password" autocomplete="off" spellcheck="false" placeholder="Optional shared secret">
+          </label>
+          <label class="check-row">
+            <input id="settings-sync" type="checkbox">
+            <span>Sync verified run summaries</span>
+          </label>
+        </section>
+      </div>
+
+      <footer class="settings-actions">
+        <button class="text-button danger" id="settings-clear" type="button">Clear keys</button>
+        <div class="settings-buttons">
+          <button class="button-secondary" id="settings-cancel" type="button">Cancel</button>
+          <button class="button-primary" type="submit">Save settings</button>
+        </div>
+      </footer>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

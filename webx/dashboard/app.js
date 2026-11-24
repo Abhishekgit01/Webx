@@ -23,7 +23,7 @@
 
   const state = {
     running: false,
-    voiceOn: localStorage.getItem("aegis-voice") !== "0",
+    voiceOn: localStorage.getItem("webx-voice") !== "0",
     shopUrl: "",
     formUrl: "",
     lastSeq: 0,
@@ -231,7 +231,7 @@
 
     if (event.kind === "run" && /mission complete/i.test(event.title || "")) finish(true, event);
     if (event.kind === "run" && /mission failed/i.test(event.title || "")) finish(false, event);
-    if (event.kind === "run" && /aegisweb online/i.test(event.title || "")) {
+    if (event.kind === "run" && /webx online/i.test(event.title || "")) {
       enterRunning("Agent working");
     }
     if (event.kind === "success" && /evidence package/i.test(event.title || "")) {
@@ -302,7 +302,7 @@
     liveShot.removeAttribute("src");
     screenIdle.style.display = "";
     narrationText.textContent = "“Mission accepted. Opening the first tab.”";
-    urlText.textContent = state.shopUrl || "aegis://mission-control";
+    urlText.textContent = state.shopUrl || "webx://mission-control";
     reportLink.hidden = true;
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     startTimer();
@@ -359,7 +359,7 @@
   voiceToggle.checked = state.voiceOn;
   voiceToggle.addEventListener("change", () => {
     state.voiceOn = voiceToggle.checked;
-    localStorage.setItem("aegis-voice", state.voiceOn ? "1" : "0");
+    localStorage.setItem("webx-voice", state.voiceOn ? "1" : "0");
     if (!state.voiceOn && window.speechSynthesis) window.speechSynthesis.cancel();
     toast(state.voiceOn ? "Voice narration on." : "Voice narration muted.");
   });
@@ -436,7 +436,7 @@
     if (
       event.seq === 1 &&
       event.kind === "run" &&
-      /aegisweb online/i.test(event.title || "") &&
+      /webx online/i.test(event.title || "") &&
       state.lastSeq > 1 &&
       timestamp > state.lastTs
     ) {

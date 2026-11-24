@@ -1,4 +1,4 @@
-"""Runtime configuration for AegisWeb."""
+"""Runtime configuration for Webx."""
 
 from __future__ import annotations
 
@@ -137,32 +137,32 @@ def load_settings(**overrides) -> Settings:
     """Build settings from .env + process environment, then apply explicit overrides."""
     _load_dotenv()
     settings = Settings(
-        demo_base_url=os.getenv("AEGIS_DEMO_URL") or None,
-        host=os.getenv("AEGIS_HOST", "127.0.0.1"),
-        demo_port=_env_int("AEGIS_DEMO_PORT", 4173),
-        dashboard_port=_env_int("AEGIS_DASHBOARD_PORT", 8000),
-        headless=_env_bool("AEGIS_HEADLESS", False),
-        slow_mo=_env_int("AEGIS_SLOWMO", 280),
-        pace=_env_float("AEGIS_PACE", 1.0),
-        viewport_width=_env_int("AEGIS_VIEWPORT_WIDTH", 1440),
-        viewport_height=_env_int("AEGIS_VIEWPORT_HEIGHT", 900),
-        chrome_path=os.getenv("AEGIS_CHROME_PATH") or None,
-        artifacts_dir=Path(os.getenv("AEGIS_ARTIFACTS_DIR", str(DEFAULT_ARTIFACTS))),
-        assets_dir=Path(os.getenv("AEGIS_ASSETS_DIR", str(DEFAULT_ASSETS))),
-        audio=_env_bool("AEGIS_AUDIO", False),
-        narration=_env_bool("AEGIS_NARRATION", True),
-        hold_seconds=_env_float("AEGIS_HOLD", 3.0),
+        demo_base_url=os.getenv("WEBX_DEMO_URL") or None,
+        host=os.getenv("WEBX_HOST", "127.0.0.1"),
+        demo_port=_env_int("WEBX_DEMO_PORT", 4173),
+        dashboard_port=_env_int("WEBX_DASHBOARD_PORT", 8000),
+        headless=_env_bool("WEBX_HEADLESS", False),
+        slow_mo=_env_int("WEBX_SLOWMO", 280),
+        pace=_env_float("WEBX_PACE", 1.0),
+        viewport_width=_env_int("WEBX_VIEWPORT_WIDTH", 1440),
+        viewport_height=_env_int("WEBX_VIEWPORT_HEIGHT", 900),
+        chrome_path=os.getenv("WEBX_CHROME_PATH") or None,
+        artifacts_dir=Path(os.getenv("WEBX_ARTIFACTS_DIR", str(DEFAULT_ARTIFACTS))),
+        assets_dir=Path(os.getenv("WEBX_ASSETS_DIR", str(DEFAULT_ASSETS))),
+        audio=_env_bool("WEBX_AUDIO", False),
+        narration=_env_bool("WEBX_NARRATION", True),
+        hold_seconds=_env_float("WEBX_HOLD", 3.0),
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
-        openai_model=os.getenv("AEGIS_OPENAI_MODEL", "gpt-4o"),
+        openai_model=os.getenv("WEBX_OPENAI_MODEL", "gpt-4o"),
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", ""),
-        anthropic_model=os.getenv("AEGIS_ANTHROPIC_MODEL", "claude-3-5-sonnet-latest"),
+        anthropic_model=os.getenv("WEBX_ANTHROPIC_MODEL", "claude-3-5-sonnet-latest"),
         elevenlabs_api_key=os.getenv("ELEVENLABS_API_KEY", ""),
         elevenlabs_voice_id=os.getenv("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM"),
-        elevenlabs_model=os.getenv("AEGIS_ELEVENLABS_MODEL", "eleven_turbo_v2_5"),
-        cloud_url=os.getenv("AEGIS_CLOUD_URL", ""),
-        cloud_token=os.getenv("AEGIS_CLOUD_TOKEN", ""),
-        vision_fallback=_env_bool("AEGIS_VISION_FALLBACK", True),
-        max_retries=_env_int("AEGIS_MAX_RETRIES", 3),
+        elevenlabs_model=os.getenv("WEBX_ELEVENLABS_MODEL", "eleven_turbo_v2_5"),
+        cloud_url=os.getenv("WEBX_CLOUD_URL", ""),
+        cloud_token=os.getenv("WEBX_CLOUD_TOKEN", ""),
+        vision_fallback=_env_bool("WEBX_VISION_FALLBACK", True),
+        max_retries=_env_int("WEBX_MAX_RETRIES", 3),
     )
     if overrides:
         settings = settings.with_overrides(**overrides)

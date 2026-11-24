@@ -1,14 +1,17 @@
-# AegisWeb
+# Webx
 
-A local-first browser agent built with Python and Playwright. It runs a complete
-storefront-to-form workflow: reject a cookie banner, block tracker requests, extract
-the first product price, carry the value across tabs, and verify a form submission.
+A local-first browser agent with a Python/Playwright reference implementation and a
+Manifest V3 Chrome extension. Both run the same storefront-to-form workflow: reject a
+cookie banner, block tracker requests, extract the first product price, carry the
+value across tabs, and verify a form submission.
 
 The demo is deterministic and offline. No API keys or cloud account are required.
 
 ## Features
 
 - Browser automation with Playwright
+- Manifest V3 Chrome extension with a voice-controlled side panel
+- Voice commands through ElevenLabs or browser speech, with a typed fallback
 - Cookie-consent rejection with verified state
 - Network-level tracker blocking
 - Product extraction with data-attribute, JSON-LD, and text fallbacks
@@ -42,16 +45,16 @@ If no system browser is available, install Playwright's Chromium once:
 python3 -m playwright install chromium
 ```
 
-You can also set `AEGIS_CHROME_PATH` to a specific browser binary.
+You can also set `WEBX_CHROME_PATH` to a specific browser binary.
 
 ## Usage
 
 Run the agent from the terminal:
 
 ```bash
-python3 -m aegisweb doctor
-python3 -m aegisweb demo
-python3 -m aegisweb demo --headless --slowmo 0 --pace 0 --no-narration
+python3 -m webx doctor
+python3 -m webx demo
+python3 -m webx demo --headless --slowmo 0 --pace 0 --no-narration
 ```
 
 Run the standalone Playwright flow:
@@ -62,7 +65,27 @@ python3 scripts/happy_path.py --headless
 ```
 
 `scripts/happy_path.py` is a single-file script that starts its own server and does
-not import the `aegisweb` package.
+not import the `webx` package.
+
+## Chrome extension
+
+`webx-extension/` is a Manifest V3 side-panel agent with no build step. It runs
+the same demo workflow against the same local pages.
+
+1. Start the demo server with `./run_demo.sh`.
+2. Open `chrome://extensions`, enable **Developer mode**, and choose **Load unpacked**.
+3. Select the `webx-extension/` directory.
+4. Open <http://127.0.0.1:4173/shop/> and click the Webx toolbar icon.
+5. Click **Run mission**, or type `Get price and apply to target sheet`.
+
+The side panel rejects the local consent banner, captures `$149.00`, opens the
+research form, fills and submits it, and verifies the receipt. Voice uses ElevenLabs
+when a key is configured in panel settings; browser speech and typed commands are
+the fallbacks. The optional AWS run-memory endpoint is configured in the same panel,
+and a failed sync never blocks a mission.
+
+See [`webx-extension/README.md`](webx-extension/README.md) for load steps,
+commands, settings, permissions, and troubleshooting.
 
 ## Demo flow
 
@@ -89,7 +112,7 @@ Artifacts are git-ignored. The dashboard serves them from `/artifacts/latest/`.
 
 ## How it works
 
-AegisWeb uses a bounded five-phase runbook: open, privacy, extract, handoff, and form.
+Webx uses a bounded five-phase runbook: open, privacy, extract, handoff, and form.
 Every phase performs a real browser action followed by a real verification. Events are
 published to the terminal, the dashboard's SSE stream, `trace.jsonl`, and the final
 report from a single event bus.
@@ -115,10 +138,10 @@ All integrations are optional and fail without affecting the core demo. Copy
 | `OPENAI_API_KEY` | OpenAI vision fallback for unfamiliar controls |
 | `ANTHROPIC_API_KEY` | Anthropic vision fallback |
 | `ELEVENLABS_API_KEY` | ElevenLabs narration |
-| `AEGIS_COMPLETION_AUDIO` | Path to a custom completion audio clip |
-| `AEGIS_CLOUD_URL` | AWS run-memory endpoint |
-| `AEGIS_CLOUD_TOKEN` | Optional bearer token for the AWS endpoint |
-| `AEGIS_CHROME_PATH` | Explicit Chrome/Chromium binary |
+| `WEBX_COMPLETION_AUDIO` | Path to a custom completion audio clip |
+| `WEBX_CLOUD_URL` | AWS run-memory endpoint |
+| `WEBX_CLOUD_TOKEN` | Optional bearer token for the AWS endpoint |
+| `WEBX_CHROME_PATH` | Explicit Chrome/Chromium binary |
 
 ### Voice
 
@@ -128,7 +151,7 @@ audio, generate the voice pack and run with `--audio`:
 ```bash
 export ELEVENLABS_API_KEY=...
 python3 scripts/generate_tts.py
-python3 -m aegisweb demo --audio
+python3 -m webx demo --audio
 ```
 
 ### AWS run memory
@@ -141,18 +164,18 @@ sam build
 sam deploy --guided
 ```
 
-Set `AEGIS_CLOUD_URL` to the `RunsEndpoint` output. Deployment details, the API
+Set `WEBX_CLOUD_URL` to the `RunsEndpoint` output. Deployment details, the API
 contract, and cleanup steps are in [`infra/README.md`](infra/README.md).
 
 ## Commands
 
 | Command | Purpose |
 | --- | --- |
-| `python3 -m aegisweb serve` | Start Mission Control and the demo server |
-| `python3 -m aegisweb demo` | Run the headed agent in the terminal |
-| `python3 -m aegisweb demo --headless --pace 0` | Run without pacing |
-| `python3 -m aegisweb doctor` | Check dependencies, browser, and optional keys |
-| `python3 -m aegisweb tts --dry-run` | Preview the ElevenLabs lines |
+| `python3 -m webx serve` | Start Mission Control and the demo server |
+| `python3 -m webx demo` | Run the headed agent in the terminal |
+| `python3 -m webx demo --headless --pace 0` | Run without pacing |
+| `python3 -m webx doctor` | Check dependencies, browser, and optional keys |
+| `python3 -m webx tts --dry-run` | Preview the ElevenLabs lines |
 | `python3 scripts/happy_path.py` | Run the standalone end-to-end flow |
 | `make test` | Run the test suite |
 
@@ -172,7 +195,7 @@ available.
 ## Project structure
 
 ```
-aegisweb/
+webx/
   agent.py          Runbook and mission lifecycle
   browser.py        Playwright session, tracker blocking, screenshots
   skills.py         Consent, extraction, form fill, verification
@@ -187,6 +210,7 @@ aegisweb/
 demo/
   shop/             Demo storefront
   form/             Demo research form
+webx-extension/     Manifest V3 Chrome extension (side panel, no build step)
 scripts/
   happy_path.py     Standalone single-file demo
   generate_tts.py   ElevenLabs voice pack

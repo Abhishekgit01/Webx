@@ -2,7 +2,7 @@
 
 The recorded demo never depends on this module: DOM/ARIA selectors are tried first
 and the local site is deterministic. When a selector fails and an OpenAI/Anthropic
-key is configured, AegisWeb can look at the screenshot and click the described
+key is configured, Webx can look at the screenshot and click the described
 control. That is the "self-healing" escape hatch for redesigned external sites.
 """
 

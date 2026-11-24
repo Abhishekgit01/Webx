@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-command AegisWeb demo. Opens Mission Control in your default browser.
+# One-command Webx demo. Opens Mission Control in your default browser.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -19,4 +19,4 @@ if ! "$PYTHON" -c "import playwright, fastapi, uvicorn" >/dev/null 2>&1; then
   exit 1
 fi
 
-exec "$PYTHON" -m aegisweb serve "$@"
+exec "$PYTHON" -m webx serve "$@"

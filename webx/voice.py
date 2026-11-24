@@ -27,7 +27,7 @@ class VoiceEngine:
 
     def _candidate_paths(self, key: str) -> list[Path]:
         safe = re.sub(r"[^a-z0-9_-]+", "-", key.lower()).strip("-")
-        env_key = f"AEGIS_VOICE_{safe.upper().replace('-', '_')}"
+        env_key = f"WEBX_VOICE_{safe.upper().replace('-', '_')}"
         paths: list[Path] = []
         env_path = os.getenv(env_key)
         if env_path:
@@ -63,12 +63,12 @@ class VoiceEngine:
         """The explicit end-of-demo audio hook.
 
         Priority:
-          1. AEGIS_COMPLETION_AUDIO environment variable
+          1. WEBX_COMPLETION_AUDIO environment variable
           2. assets/voice/complete.mp3
           3. assets/voice/complete.wav
         """
         paths = []
-        env_path = os.getenv("AEGIS_COMPLETION_AUDIO")
+        env_path = os.getenv("WEBX_COMPLETION_AUDIO")
         if env_path:
             paths.append(Path(env_path))
         paths.extend([Path(self.settings.voice_dir) / "complete.mp3", Path(self.settings.voice_dir) / "complete.wav"])

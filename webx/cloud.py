@@ -1,6 +1,6 @@
 """Optional AWS-backed run memory.
 
-The local JSON memory is the source of truth for the demo. When AEGIS_CLOUD_URL is
+The local JSON memory is the source of truth for the demo. When WEBX_CLOUD_URL is
 set, the final run record is also POSTed to the SAM API in infra/template.yaml.
 """
 
@@ -40,7 +40,7 @@ class CloudMemory:
             },
         }
         data = json.dumps(payload).encode("utf-8")
-        headers = {"content-type": "application/json", "user-agent": "AegisWeb/0.1"}
+        headers = {"content-type": "application/json", "user-agent": "Webx/0.1"}
         if self.settings.cloud_token:
             headers["authorization"] = f"Bearer {self.settings.cloud_token}"
         request = urllib.request.Request(self.url, data=data, headers=headers, method="POST")

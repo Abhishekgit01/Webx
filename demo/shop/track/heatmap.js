@@ -1,4 +1,4 @@
-/* Fake session-heatmap tracker, intentionally local. AegisWeb should block this. */
+/* Fake session-heatmap tracker, intentionally local. Webx should block this. */
 (() => {
   window.__nimbusTracker = window.__nimbusTracker || {};
   window.__nimbusTracker.heatmap = { loaded: true, at: Date.now() };

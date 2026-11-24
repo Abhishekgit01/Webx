@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Standalone AegisWeb happy path — one file, no API keys, no network.
+"""Standalone Webx happy path — one file, no API keys, no network.
 
 This is the "prove it in 60 seconds" script. It intentionally does not import the
-AegisWeb package: it starts its own local server, drives Playwright directly, and
+Webx package: it starts its own local server, drives Playwright directly, and
 uses the same stable data attributes as the full agent.
 
 Flow:
@@ -20,7 +20,7 @@ Usage:
   python scripts/happy_path.py --elevenlabs    # synth completion line (needs key)
 
 The optional completion-audio hook looks for, in order:
-  1. $AEGIS_COMPLETION_AUDIO
+  1. $WEBX_COMPLETION_AUDIO
   2. assets/voice/complete.mp3
   3. assets/voice/complete.wav
   4. ElevenLabs synthesis when --elevenlabs and $ELEVENLABS_API_KEY are set
@@ -46,12 +46,12 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEMO_ROOT = PROJECT_ROOT / "demo"
 SCREEN_DIR = PROJECT_ROOT / "artifacts" / "happy-path"
-COMPLETION_TEXT = "Mission complete. The price is logged. AegisWeb is standing by."
+COMPLETION_TEXT = "Mission complete. The price is logged. Webx is standing by."
 
 
 # --------------------------------------------------------------------------- server
 class _DemoHandler(SimpleHTTPRequestHandler):
-    server_version = "AegisHappyPath/1.0"
+    server_version = "WebxHappyPath/1.0"
 
     def do_GET(self) -> None:  # noqa: N802 (stdlib naming)
         if self.path == "/":
@@ -69,14 +69,14 @@ def start_demo_server(port: int = 0) -> tuple[ThreadingHTTPServer, str]:
     handler = partial(_DemoHandler, directory=str(DEMO_ROOT))
     httpd = ThreadingHTTPServer(("127.0.0.1", port), handler)
     httpd.daemon_threads = True
-    thread = threading.Thread(target=httpd.serve_forever, name="aegis-happy-path", daemon=True)
+    thread = threading.Thread(target=httpd.serve_forever, name="webx-happy-path", daemon=True)
     thread.start()
     return httpd, f"http://127.0.0.1:{httpd.server_address[1]}"
 
 
 # -------------------------------------------------------------------------- browser
 def browser_candidates() -> list[str]:
-    values = [os.getenv("AEGIS_CHROME_PATH", "")]
+    values = [os.getenv("WEBX_CHROME_PATH", "")]
     if sys.platform.startswith("win"):
         values += [
             r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -125,7 +125,7 @@ def launch(pw, headless: bool, slow_mo: int):
     except Exception as exc:
         errors.append(str(exc))
     raise RuntimeError(
-        "No usable browser. Install Google Chrome, set AEGIS_CHROME_PATH, or run "
+        "No usable browser. Install Google Chrome, set WEBX_CHROME_PATH, or run "
         "`python -m playwright install chromium`.\n" + "\n".join(errors)
     )
 
@@ -171,7 +171,7 @@ def _synthesize_elevenlabs(target: Path) -> bool:
         print("  audio    httpx is not installed; cannot synthesize")
         return False
     voice = os.getenv("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")
-    model = os.getenv("AEGIS_ELEVENLABS_MODEL", "eleven_turbo_v2_5")
+    model = os.getenv("WEBX_ELEVENLABS_MODEL", "eleven_turbo_v2_5")
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
         response = httpx.post(
@@ -194,8 +194,8 @@ def completion_audio(enable: bool, synthesize: bool) -> None:
     if not enable:
         return
     candidates = []
-    if os.getenv("AEGIS_COMPLETION_AUDIO"):
-        candidates.append(Path(os.environ["AEGIS_COMPLETION_AUDIO"]))
+    if os.getenv("WEBX_COMPLETION_AUDIO"):
+        candidates.append(Path(os.environ["WEBX_COMPLETION_AUDIO"]))
     candidates += [
         PROJECT_ROOT / "assets" / "voice" / "complete.mp3",
         PROJECT_ROOT / "assets" / "voice" / "complete.wav",
@@ -231,13 +231,13 @@ def normalize_price(raw: str) -> str:
 
 
 def reject_cookies(page) -> str:
-    banner = page.locator("#cookie-banner, [data-aegis-consent]").first
+    banner = page.locator("#cookie-banner, [data-webx-consent]").first
     if not banner.count() or not banner.is_visible(timeout=1000):
         log("privacy", "no consent banner visible — continuing")
         return "none"
-    page.locator("#reject-all, [data-aegis-reject]").first.click(timeout=4000)
+    page.locator("#reject-all, [data-webx-reject]").first.click(timeout=4000)
     page.wait_for_function(
-        """() => window.__aegisConsent === 'rejected' ||
+        """() => window.__webxConsent === 'rejected' ||
                  (() => { const el = document.querySelector('#cookie-banner');
                           return !!el && (el.hidden || getComputedStyle(el).display === 'none'); })()""",
         timeout=5000,
@@ -247,7 +247,7 @@ def reject_cookies(page) -> str:
 
 
 def read_first_product(page) -> dict[str, str]:
-    card = page.locator("[data-aegis-first-product]").first
+    card = page.locator("[data-webx-first-product]").first
     card.scroll_into_view_if_needed(timeout=3000)
     page.wait_for_timeout(250)
     name = (card.get_attribute("data-name") or "").strip()
@@ -255,15 +255,15 @@ def read_first_product(page) -> dict[str, str]:
         name = card.locator("h1, h2, h3").first.inner_text(timeout=1500).strip()
     raw = card.get_attribute("data-price") or ""
     if not raw:
-        raw = card.locator("[data-aegis-price], .price").first.inner_text(timeout=1500)
+        raw = card.locator("[data-webx-price], .price").first.inner_text(timeout=1500)
     price = normalize_price(raw)
     log("extract", f"{name} · {price}")
     return {"name": name, "price": price}
 
 
 def fill_form(page, product: dict[str, str], shop_url: str, submit: bool) -> dict[str, str]:
-    page.wait_for_selector("[data-aegis-form], form", state="visible", timeout=8000)
-    first = page.locator("[data-aegis-first-field], form input[type='text'], form input:not([type])").first
+    page.wait_for_selector("[data-webx-form], form", state="visible", timeout=8000)
+    first = page.locator("[data-webx-first-field], form input[type='text'], form input:not([type])").first
     first.click()
     first.fill(product["price"])
 
@@ -285,7 +285,7 @@ def fill_form(page, product: dict[str, str], shop_url: str, submit: bool) -> dic
 
     page.locator("button[type='submit'], button:has-text('Submit')").first.click(timeout=4000)
     page.wait_for_function(
-        "() => window.__aegisFormSubmitted === true || !!document.querySelector('[data-aegis-confirmation]:not([hidden])')",
+        "() => window.__webxFormSubmitted === true || !!document.querySelector('[data-webx-confirmation]:not([hidden])')",
         timeout=6000,
     )
     receipt = ""
@@ -306,7 +306,7 @@ def run(args: argparse.Namespace) -> int:
     httpd, base_url = start_demo_server(args.port)
     shop_url, form_url = f"{base_url}/shop/", f"{base_url}/form/"
     print()
-    print("  AEGISWEB / HAPPY PATH")
+    print("  WEBX / HAPPY PATH")
     print(f"  storefront  {shop_url}")
     print(f"  form        {form_url}")
     print(f"  mode        {'headless' if args.headless else 'headed'} · slow-mo {args.slowmo}ms")
@@ -326,7 +326,7 @@ def run(args: argparse.Namespace) -> int:
                 # Tab 1 — storefront.
                 page = context.new_page()
                 page.goto(shop_url, wait_until="domcontentloaded")
-                page.wait_for_selector("[data-aegis-catalog]", state="visible", timeout=9000)
+                page.wait_for_selector("[data-webx-catalog]", state="visible", timeout=9000)
                 page.wait_for_timeout(500)
                 log("open", "storefront loaded in tab 1")
                 shot(page, "01-storefront-loaded.png")
@@ -383,7 +383,7 @@ def run(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run the standalone AegisWeb storefront → form happy path")
+    parser = argparse.ArgumentParser(description="Run the standalone Webx storefront → form happy path")
     parser.add_argument("--headless", action="store_true", help="Run without a visible browser")
     parser.add_argument("--slowmo", type=int, default=180, help="Playwright slow motion in ms (default: 180)")
     parser.add_argument("--hold", type=float, default=3.0, help="Keep the receipt on screen for N seconds")

@@ -6,13 +6,13 @@ setup:
 	$(PYTHON) -m pip install -r requirements-dev.txt
 
 doctor:
-	$(PYTHON) -m aegisweb doctor
+	$(PYTHON) -m webx doctor
 
 demo:
-	$(PYTHON) -m aegisweb demo
+	$(PYTHON) -m webx demo
 
 serve:
-	$(PYTHON) -m aegisweb serve
+	$(PYTHON) -m webx serve
 
 test:
 	$(PYTHON) -m pytest -q

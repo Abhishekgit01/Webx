@@ -19,7 +19,7 @@
 
   const recordConsent = (choice) => {
     // This is the visible, verifiable outcome the browser agent checks.
-    window.__aegisConsent = choice;
+    window.__webxConsent = choice;
     document.documentElement.dataset.consent = choice;
     if (banner) {
       banner.classList.add("is-hidden");
@@ -59,10 +59,10 @@
 
   // Expose a tiny demo API for the agent's verification step.
   window.__nimbus = {
-    get consent() { return window.__aegisConsent || null; },
+    get consent() { return window.__webxConsent || null; },
     get bag() { return bag; },
     get firstProductPrice() {
-      return document.querySelector("[data-aegis-price]")?.textContent?.trim() || null;
+      return document.querySelector("[data-webx-price]")?.textContent?.trim() || null;
     }
   };
 })();

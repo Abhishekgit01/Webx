@@ -3,13 +3,13 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aegisweb"
+name = "webx"
 version = "0.1.0"
-description = "AegisWeb — a voice-controlled AI browser agent for privacy, navigation, and cross-tab orchestration."
+description = "Webx — a voice-controlled AI browser agent for privacy, navigation, and cross-tab orchestration."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "AegisWeb" }]
+authors = [{ name = "Webx" }]
 dependencies = [
   "playwright>=1.45",
   "fastapi>=0.110",
@@ -22,13 +22,13 @@ dependencies = [
 dev = ["pytest>=8.0"]
 
 [project.scripts]
-aegis = "aegisweb.cli:main"
+webx = "webx.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["aegisweb*"]
+include = ["webx*"]
 
 [tool.setuptools.package-data]
-aegisweb = ["dashboard/*"]
+webx = ["dashboard/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

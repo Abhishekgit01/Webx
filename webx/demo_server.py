@@ -17,17 +17,17 @@ DEMO_ROOT = Path(__file__).resolve().parent.parent / "demo"
 
 
 class DemoRequestHandler(SimpleHTTPRequestHandler):
-    server_version = "AegisDemo/1.0"
+    server_version = "WebxDemo/1.0"
 
     def end_headers(self) -> None:
         if self.path.endswith((".html", "/")) or "?" not in self.path and "." not in self.path.rsplit("/", 1)[-1]:
             self.send_header("Cache-Control", "no-store, max-age=0")
-        self.send_header("X-Aegis-Demo", "1")
+        self.send_header("X-Webx-Demo", "1")
         super().end_headers()
 
     def do_GET(self) -> None:  # noqa: N802 (stdlib naming)
         if self.path == "/health":
-            payload = json.dumps({"ok": True, "service": "aegis-demo"}).encode()
+            payload = json.dumps({"ok": True, "service": "webx-demo"}).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(payload)))
@@ -42,7 +42,7 @@ class DemoRequestHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def log_message(self, format: str, *args) -> None:  # noqa: A002
-        if os.getenv("AEGIS_DEMO_LOG") == "1":
+        if os.getenv("WEBX_DEMO_LOG") == "1":
             super().log_message(format, *args)
 
 
@@ -64,7 +64,7 @@ class DemoServer:
             self._httpd = ThreadingHTTPServer((self.host, 0), handler)
         self.port = int(self._httpd.server_address[1])
         self._httpd.daemon_threads = True
-        self._thread = threading.Thread(target=self._httpd.serve_forever, name="aegis-demo", daemon=True)
+        self._thread = threading.Thread(target=self._httpd.serve_forever, name="webx-demo", daemon=True)
         self._thread.start()
         return self
 

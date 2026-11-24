@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .agent import AegisAgent
+from .agent import WebxAgent
 from .config import PROJECT_ROOT, Settings
 from .demo_server import DemoServer
 from .events import EventBus
@@ -52,7 +52,7 @@ class DashboardState:
             self.last_error = None
             self.started_at = time.time()
             self.bus.reset()
-        thread = threading.Thread(target=self._run, args=(request,), name="aegis-run", daemon=True)
+        thread = threading.Thread(target=self._run, args=(request,), name="webx-run", daemon=True)
         thread.start()
 
     def _run(self, request: RunRequest) -> None:
@@ -63,7 +63,7 @@ class DashboardState:
                 audio=False,
                 demo_base_url=self.demo.base_url,
             )
-            agent = AegisAgent(run_settings, self.bus)
+            agent = WebxAgent(run_settings, self.bus)
             result = agent.run(request.task)
             self.last_result = result
         except Exception as exc:  # noqa: BLE001
@@ -109,8 +109,8 @@ def create_app(settings: Settings, demo: DemoServer) -> FastAPI:
     artifacts = Path(settings.artifacts_dir)
     artifacts.mkdir(parents=True, exist_ok=True)
 
-    app = FastAPI(title="AegisWeb Mission Control", docs_url=None, redoc_url=None)
-    app.state.aegis = state
+    app = FastAPI(title="Webx Mission Control", docs_url=None, redoc_url=None)
+    app.state.webx = state
     app.mount("/artifacts", StaticFiles(directory=str(artifacts)), name="artifacts")
     app.mount("/static", StaticFiles(directory=str(DASHBOARD_DIR)), name="static")
 
@@ -120,7 +120,7 @@ def create_app(settings: Settings, demo: DemoServer) -> FastAPI:
 
     @app.get("/api/health")
     def health() -> dict[str, Any]:
-        return {"ok": True, "service": "aegisweb-dashboard", "running": state.running}
+        return {"ok": True, "service": "webx-dashboard", "running": state.running}
 
     @app.get("/api/state")
     def get_state() -> dict[str, Any]:
@@ -182,7 +182,7 @@ def serve(settings: Settings, *, open_browser: bool = True) -> None:
     app = create_app(settings, demo)
 
     print()
-    print("  AEGISWEB / MISSION CONTROL")
+    print("  WEBX / MISSION CONTROL")
     print(f"  dashboard  {url}")
     print(f"  storefront {demo.base_url}/shop/")
     print(f"  form       {demo.base_url}/form/")

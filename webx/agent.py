@@ -1,4 +1,4 @@
-"""AegisWeb's Plan → Act → Observe runbook.
+"""Webx's Plan → Act → Observe runbook.
 
 The recorded demo uses a guarded, deterministic runbook: each step is a real
 browser action followed by a real verification, so nothing is faked. Optional LLM
@@ -24,7 +24,7 @@ from .skills import dismiss_consent, extract_first_product, fill_research_form, 
 from .voice import VoiceEngine
 
 
-class AegisAgent:
+class WebxAgent:
     def __init__(self, settings: Settings, bus: EventBus | None = None) -> None:
         self.settings = settings
         self.bus = bus or EventBus()
@@ -64,7 +64,7 @@ class AegisAgent:
 
         self._emit(
             "run",
-            "AegisWeb online",
+            "Webx online",
             "Browser agent ready. Guarded autonomy engaged.",
             status="info",
             data={
@@ -82,10 +82,10 @@ class AegisAgent:
             status="info",
             data={"mission": mission.as_dict(), "steps": mission.notes},
             narration=self._narrate(
-                "AegisWeb online. I’ll handle the cookie banner, capture the first price, and carry it across to your research form."
+                "Webx online. I’ll handle the cookie banner, capture the first price, and carry it across to your research form."
             ),
         )
-        self._say("intro", "AegisWeb online. Starting the guarded demo runbook.")
+        self._say("intro", "Webx online. Starting the guarded demo runbook.")
         if mission.notes:
             for note in mission.notes:
                 self._emit("observe", "Mission resolution", note, status="info")
@@ -124,7 +124,7 @@ class AegisAgent:
                 narration=self._narrate("Opening the demo storefront in the first tab."),
             )
             try:
-                current_page.wait_for_selector("[data-aegis-catalog], body", state="visible", timeout=9000)
+                current_page.wait_for_selector("[data-webx-catalog], body", state="visible", timeout=9000)
             except Exception:
                 pass
             current_page.wait_for_timeout(int(500 * self.settings.pace))
@@ -245,7 +245,7 @@ class AegisAgent:
             form_page = session.open_tab(mission.form_url)
             current_page = form_page
             try:
-                form_page.wait_for_selector("[data-aegis-form], form", state="visible", timeout=9000)
+                form_page.wait_for_selector("[data-webx-form], form", state="visible", timeout=9000)
             except Exception:
                 pass
             session.activate(form_page)
@@ -435,14 +435,14 @@ class AegisAgent:
                 "cookies_rejected", "consent_method", "duration_seconds", "cloud_status",
             )},
             narration=self._narrate(
-                "Mission complete. The price is logged. AegisWeb is standing by."
+                "Mission complete. The price is logged. Webx is standing by."
                 if result["success"]
                 else "The mission could not be completed. Review the trace."
             ),
         )
         self._say(
             "complete",
-            "Mission complete. The price is logged. AegisWeb is standing by."
+            "Mission complete. The price is logged. Webx is standing by."
             if result["success"]
             else "The mission could not be completed.",
         )
@@ -480,4 +480,4 @@ class AegisAgent:
 
 
 def run_agent(task: str, settings: Settings, bus: EventBus | None = None) -> dict[str, Any]:
-    return AegisAgent(settings, bus).run(task)
+    return WebxAgent(settings, bus).run(task)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from aegisweb.mission import parse_mission
+from webx.mission import parse_mission
 
 SHOP = "http://127.0.0.1:4173/shop/"
 FORM = "http://127.0.0.1:4173/form/"
@@ -28,13 +28,13 @@ def test_default_demo_brief_uses_local_urls_and_all_skills():
 
 def test_two_urls_are_assigned_in_order_and_cleaned():
     mission = parse_mission(
-        "Compare https://shop.example.com/deal?ref=aegis, then record it at "
+        "Compare https://shop.example.com/deal?ref=webx, then record it at "
         "https://forms.example.com/watch.",
         SHOP,
         FORM,
     )
 
-    assert mission.shop_url == "https://shop.example.com/deal?ref=aegis"
+    assert mission.shop_url == "https://shop.example.com/deal?ref=webx"
     assert mission.form_url == "https://forms.example.com/watch"
     assert mission.custom_urls is True
     assert mission.notes == ["Using the two URLs found in the mission brief."]

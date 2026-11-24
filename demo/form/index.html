@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="AegisWeb local research form — capture product prices across tabs.">
-  <title>Product Price Watch — AegisWeb Research Desk</title>
+  <meta name="description" content="Webx local research form — capture product prices across tabs.">
+  <title>Product Price Watch — Webx Research Desk</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23173f2e'/%3E%3Cpath d='M20 40V26l12-8 12 8v14L32 48 20 40z' fill='none' stroke='%23d8ff63' stroke-width='3'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -14,7 +14,7 @@
       <span class="brand-mark">
         <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4 33 9v10c0 8-5.7 14.5-13 17C12.7 33.5 7 27 7 19V9l13-5Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 14v8M20 27h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       </span>
-      <span class="brand-copy">AegisWeb<em>Research desk</em></span>
+      <span class="brand-copy">Webx<em>Research desk</em></span>
     </a>
     <div class="topbar-right">
       <span class="local-pill"><span></span> Local demo form</span>
@@ -30,15 +30,15 @@
         <header class="form-head">
           <p class="kicker">Cross-tab intelligence · Form 01</p>
           <h1>Product Price Watch</h1>
-          <p class="description">The field research log for prices spotted by your AegisWeb agent. Data stays on this local demo. No account, no tracking, no surprise partners.</p>
+          <p class="description">The field research log for prices spotted by your Webx agent. Data stays on this local demo. No account, no tracking, no surprise partners.</p>
           <p class="required-note"><span>*</span> Required question</p>
         </header>
 
-        <form id="research-form" data-aegis-form data-aegis-target-form novalidate>
+        <form id="research-form" data-webx-form data-webx-target-form novalidate>
           <div class="question">
             <label for="price">Price observed <span aria-hidden="true">*</span></label>
             <p class="hint">The exact price the agent captured, including currency.</p>
-            <input id="price" name="price" type="text" inputmode="decimal" placeholder="$149.00" autocomplete="off" required data-aegis-first-field>
+            <input id="price" name="price" type="text" inputmode="decimal" placeholder="$149.00" autocomplete="off" required data-webx-first-field>
           </div>
 
           <div class="question">
@@ -65,7 +65,7 @@
         </form>
       </div>
 
-      <div class="confirmation" id="confirmation" data-aegis-confirmation hidden>
+      <div class="confirmation" id="confirmation" data-webx-confirmation hidden>
         <div class="check" aria-hidden="true">
           <svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="none" stroke="currentColor" stroke-width="2"/><path d="m15 27 7 7 15-17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
@@ -82,11 +82,11 @@
           <button class="submit-button" type="button" id="new-response">Log another price</button>
           <a class="back-link" href="/shop/">Return to storefront →</a>
         </div>
-        <p class="fineprint">This is a local mock form built for the AegisWeb hackathon demo. Nothing is sent to Google or any external service.</p>
+        <p class="fineprint">This is a local mock form built for the Webx hackathon demo. Nothing is sent to Google or any external service.</p>
       </div>
     </div>
 
-    <p class="page-note">AegisWeb · Beyond the Browser · <span>Cross-tab orchestration, minus the copy-paste.</span></p>
+    <p class="page-note">Webx · Beyond the Browser · <span>Cross-tab orchestration, minus the copy-paste.</span></p>
   </main>
 
   <script src="app.js"></script>

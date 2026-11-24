@@ -1,4 +1,4 @@
-# AegisWeb architecture
+# Webx architecture
 
 > A local-first browser agent with a guarded runbook, observable actions, and an
 > optional cloud mirror. This document describes what actually ships in the repo.
@@ -22,7 +22,7 @@ solving, and fully autonomous planning. The agent is deliberately scoped.
 ```mermaid
 flowchart LR
     Operator([Operator]) -->|mission brief / voice| Dashboard[Mission Control<br/>FastAPI + SSE]
-    Dashboard -->|POST /api/run| Agent[AegisAgent<br/>guarded runbook]
+    Dashboard -->|POST /api/run| Agent[WebxAgent<br/>guarded runbook]
     Operator -->|CLI| Agent
     Agent --> Browser[Playwright<br/>Chrome/Chromium]
     Browser --> Shop[Local storefront<br/>/shop/]
@@ -43,20 +43,20 @@ Nothing in the solid path requires the internet. Dashed paths are opt-in.
 
 | Component | File | Responsibility |
 | --- | --- | --- |
-| CLI | `aegisweb/cli.py` | `demo`, `serve`, `doctor`, `tts` commands; flags and diagnostics |
-| Agent | `aegisweb/agent.py` | Mission lifecycle, five phases, narration, hold, report and cloud hooks |
-| Browser session | `aegisweb/browser.py` | Chrome detection, context, tracker routing, cursor overlay, screenshots |
-| Skills | `aegisweb/skills.py` | Consent rejection, price extraction, form fill and verification |
-| Mission parser | `aegisweb/mission.py` | Extracts URLs and intent from the brief; applies local defaults |
-| Memory | `aegisweb/memory.py` | Thread-safe JSON facts, run ID, explicit cross-tab handoffs |
-| Events | `aegisweb/events.py` | Thread-safe append-only event log with live callback and trace file |
-| Dashboard | `aegisweb/dashboard.py` | FastAPI app, state, run lock, SSE, artifact/static mounts |
-| Dashboard UI | `aegisweb/dashboard/` | Mission Control, live trace, metrics, runbook, voice |
-| Demo server | `aegisweb/demo_server.py` | Stdlib static server for `demo/`, health endpoint, free-port fallback |
-| Report writer | `aegisweb/report.py` | `report.md` with trace/evidence and `run.json` |
-| Voice | `aegisweb/voice.py` | ElevenLabs synthesis, local clip playback, graceful silence |
-| Vision | `aegisweb/llm.py` | Optional screenshot → click-point fallback |
-| Cloud memory | `aegisweb/cloud.py` | Best-effort POST of a compact run record to AWS |
+| CLI | `webx/cli.py` | `demo`, `serve`, `doctor`, `tts` commands; flags and diagnostics |
+| Agent | `webx/agent.py` | Mission lifecycle, five phases, narration, hold, report and cloud hooks |
+| Browser session | `webx/browser.py` | Chrome detection, context, tracker routing, cursor overlay, screenshots |
+| Skills | `webx/skills.py` | Consent rejection, price extraction, form fill and verification |
+| Mission parser | `webx/mission.py` | Extracts URLs and intent from the brief; applies local defaults |
+| Memory | `webx/memory.py` | Thread-safe JSON facts, run ID, explicit cross-tab handoffs |
+| Events | `webx/events.py` | Thread-safe append-only event log with live callback and trace file |
+| Dashboard | `webx/dashboard.py` | FastAPI app, state, run lock, SSE, artifact/static mounts |
+| Dashboard UI | `webx/dashboard/` | Mission Control, live trace, metrics, runbook, voice |
+| Demo server | `webx/demo_server.py` | Stdlib static server for `demo/`, health endpoint, free-port fallback |
+| Report writer | `webx/report.py` | `report.md` with trace/evidence and `run.json` |
+| Voice | `webx/voice.py` | ElevenLabs synthesis, local clip playback, graceful silence |
+| Vision | `webx/llm.py` | Optional screenshot → click-point fallback |
+| Cloud memory | `webx/cloud.py` | Best-effort POST of a compact run record to AWS |
 | Infrastructure | `infra/` | SAM template, Lambda handler, deploy docs |
 | Standalone proof | `scripts/happy_path.py` | Independent single-file Playwright flow |
 
@@ -66,7 +66,7 @@ Nothing in the solid path requires the internet. Dashed paths are opt-in.
 sequenceDiagram
     autonumber
     participant U as Operator
-    participant A as AegisAgent
+    participant A as WebxAgent
     participant B as BrowserSession
     participant S as Storefront
     participant F as Research form
@@ -151,11 +151,11 @@ Callbacks are wrapped in a guard: a broken UI never takes down the agent.
 ### Consent
 
 ```
-[data-aegis-reject] → #reject-all → OneTrust IDs → text/role selectors
+[data-webx-reject] → #reject-all → OneTrust IDs → text/role selectors
 → JS DOM walker → optional vision click → local DOM intervention
 ```
 
-Success is not "the click returned". The agent verifies `window.__aegisConsent`,
+Success is not "the click returned". The agent verifies `window.__webxConsent`,
 the document consent dataset, or the banner's hidden/display state. If a third-party
 banner refuses to cooperate, it is hidden locally and the event records
 `blockers: ["banner did not close normally"]`.
@@ -163,7 +163,7 @@ banner refuses to cooperate, it is hidden locally and the event records
 ### Price extraction
 
 ```
-[data-aegis-first-product] data-price
+[data-webx-first-product] data-price
 → visible price selectors inside the card
 → JSON-LD Product/offers
 → first currency-looking string in the body
@@ -175,7 +175,7 @@ recorded in the event so the demo can show *how* the value was obtained.
 ### Form
 
 ```
-[data-aegis-first-field] → input[name=price] → #price → first form text input
+[data-webx-first-field] → input[name=price] → #price → first form text input
 ```
 
 After typing, the field is read back. Currency-symbol trimming is tolerated when the
@@ -184,7 +184,7 @@ visible confirmation text; a timeout is a failure, not a success.
 
 ### Vision fallback
 
-`aegisweb/llm.py` is only called when:
+`webx/llm.py` is only called when:
 
 1. the DOM ladder failed, and
 2. `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` is set.
@@ -249,7 +249,7 @@ own Playwright instance, which is required because sync Playwright is thread-bou
 
 ```mermaid
 flowchart LR
-    Agent[AegisWeb agent] -->|POST /runs<br/>JSON + optional bearer| API[API Gateway<br/>HTTP API]
+    Agent[Webx agent] -->|POST /runs<br/>JSON + optional bearer| API[API Gateway<br/>HTTP API]
     API --> Lambda[Lambda<br/>Python 3.12]
     Lambda --> DDB[(DynamoDB<br/>runId hash key)]
     Client[curl / dashboard] -->|GET /runs<br/>GET /runs/{runId}| API
@@ -269,9 +269,9 @@ Specific choices that make the recording reliable:
 
 - **Local assets only.** The storefront, form, SVGs, CSS, and JS are files in `demo/`.
   There are no fonts, images, scripts, or API calls from third parties.
-- **Stable hooks first.** The demo pages expose `data-aegis-*` attributes; human
+- **Stable hooks first.** The demo pages expose `data-webx-*` attributes; human
   selectors and fallbacks are secondary.
-- **Chrome detection.** `browser.py` checks `AEGIS_CHROME_PATH`, platform paths, and
+- **Chrome detection.** `browser.py` checks `WEBX_CHROME_PATH`, platform paths, and
   `PATH`, then falls back to Playwright's bundled Chromium.
 - **Pacing separate from correctness.** `--pace 0 --slowmo 0` makes CI fast without
   changing any selectors; the default headed run adds pauses for an audience.

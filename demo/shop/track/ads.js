@@ -1,4 +1,4 @@
-/* Fake ad-retargeting tracker, intentionally local. AegisWeb should block this. */
+/* Fake ad-retargeting tracker, intentionally local. Webx should block this. */
 (() => {
   window.__nimbusTracker = window.__nimbusTracker || {};
   window.__nimbusTracker.ads = { loaded: true, partners: 847 };

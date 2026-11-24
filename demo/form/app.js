@@ -30,9 +30,9 @@
     setText("receipt-time", new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
 
     // Verifiable signals for the agent and the dashboard.
-    window.__aegisFormSubmitted = true;
-    document.documentElement.dataset.aegisFormSubmitted = "true";
-    document.documentElement.dataset.aegisPrice = price;
+    window.__webxFormSubmitted = true;
+    document.documentElement.dataset.webxFormSubmitted = "true";
+    document.documentElement.dataset.webxPrice = price;
 
     shell.hidden = true;
     confirmation.hidden = false;
@@ -45,7 +45,7 @@
     confirmation.hidden = true;
     shell.hidden = false;
     document.getElementById("price")?.focus();
-    window.__aegisFormSubmitted = false;
-    delete document.documentElement.dataset.aegisFormSubmitted;
+    window.__webxFormSubmitted = false;
+    delete document.documentElement.dataset.webxFormSubmitted;
   });
 })();

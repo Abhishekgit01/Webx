@@ -1,4 +1,4 @@
-"""Deterministic, observable browser skills used by the AegisWeb runbook.
+"""Deterministic, observable browser skills used by the Webx runbook.
 
 Each skill has layered fallbacks: data attributes -> accessible text -> DOM walk ->
 optional vision model -> safe DOM intervention. The happy-path demo stays on the
@@ -20,7 +20,7 @@ class SkillError(RuntimeError):
 
 
 REJECT_SELECTORS = [
-    "[data-aegis-reject]",
+    "[data-webx-reject]",
     "#reject-all",
     "#onetrust-reject-all-handler",
     "button:has-text('Reject all')",
@@ -32,7 +32,7 @@ REJECT_SELECTORS = [
 ]
 
 CONSENT_SELECTORS = [
-    "[data-aegis-consent]",
+    "[data-webx-consent]",
     "#cookie-banner",
     "#onetrust-banner-sdk",
     "[id*='cookie-banner' i]",
@@ -42,7 +42,7 @@ CONSENT_SELECTORS = [
 ]
 
 PRICE_SELECTORS = [
-    "[data-aegis-price]",
+    "[data-webx-price]",
     "[data-price]",
     ".price",
     "[class*='price' i]",
@@ -98,9 +98,9 @@ def _js_click_reject(page) -> bool:
 def _force_dismiss_consent(page) -> None:
     script = r"""
     () => {
-      window.__aegisConsent = 'rejected';
+      window.__webxConsent = 'rejected';
       document.documentElement.dataset.consent = 'rejected';
-      const candidates = ['#cookie-banner', '[data-aegis-consent]', '#onetrust-banner-sdk'];
+      const candidates = ['#cookie-banner', '[data-webx-consent]', '#onetrust-banner-sdk'];
       for (const sel of candidates) {
         document.querySelectorAll(sel).forEach((el) => {
           el.classList.add('is-hidden');
@@ -121,8 +121,8 @@ def _wait_consent_closed(page, timeout: int = 4500) -> bool:
         page.wait_for_function(
             r"""
             () => {
-              if (window.__aegisConsent === 'rejected') return true;
-              const el = document.querySelector('#cookie-banner, [data-aegis-consent]');
+              if (window.__webxConsent === 'rejected') return true;
+              const el = document.querySelector('#cookie-banner, [data-webx-consent]');
               if (!el) return true;
               return el.hidden || el.getAttribute('aria-hidden') === 'true' ||
                      el.classList.contains('is-hidden') ||
@@ -241,7 +241,7 @@ def _body_price(page) -> tuple[str, str] | None:
 
 def extract_first_product(page, settings: Settings, bus: EventBus | None = None) -> dict[str, Any]:
     page.wait_for_timeout(180)
-    card = page.locator("[data-aegis-first-product]").first
+    card = page.locator("[data-webx-first-product]").first
     result: dict[str, Any] = {
         "name": "",
         "price": "",
@@ -277,7 +277,7 @@ def extract_first_product(page, settings: Settings, bus: EventBus | None = None)
                 price_value=value,
                 sku=sku,
                 method=method,
-                selector="[data-aegis-first-product]",
+                selector="[data-webx-first-product]",
             )
             return result
 
@@ -338,13 +338,13 @@ def fill_research_form(
     before_submit=None,
 ) -> dict[str, Any]:
     try:
-        page.wait_for_selector("[data-aegis-form], form", state="visible", timeout=9000)
+        page.wait_for_selector("[data-webx-form], form", state="visible", timeout=9000)
     except Exception as exc:
         raise SkillError("Research form did not render.") from exc
 
     price_locator, price_selector = _find_form_field(
         page,
-        ["[data-aegis-first-field]", "input[name='price']", "input[name*='price' i]", "#price"],
+        ["[data-webx-first-field]", "input[name='price']", "input[name*='price' i]", "#price"],
     )
     if price_locator is None:
         raise SkillError("Could not find the first form field for the price.")
@@ -394,7 +394,7 @@ def fill_research_form(
     submitted = False
     try:
         page.wait_for_function(
-            "() => window.__aegisFormSubmitted === true || !!document.querySelector('[data-aegis-confirmation]:not([hidden])')",
+            "() => window.__webxFormSubmitted === true || !!document.querySelector('[data-webx-confirmation]:not([hidden])')",
             timeout=5000,
         )
         submitted = True
@@ -416,8 +416,8 @@ def fill_research_form(
 
     confirmation = ""
     try:
-        if page.locator("[data-aegis-confirmation]").count():
-            confirmation = page.locator("[data-aegis-confirmation]").inner_text(timeout=1500).strip()
+        if page.locator("[data-webx-confirmation]").count():
+            confirmation = page.locator("[data-webx-confirmation]").inner_text(timeout=1500).strip()
         else:
             confirmation = "Response recorded"
     except Exception:
@@ -442,6 +442,6 @@ def fill_research_form(
 
 def read_consent_state(page) -> str | None:
     try:
-        return page.evaluate("() => window.__aegisConsent || document.documentElement.dataset.consent || null")
+        return page.evaluate("() => window.__webxConsent || document.documentElement.dataset.consent || null")
     except Exception:
         return None

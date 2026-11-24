@@ -1,11 +1,11 @@
 # Hackathon runbook
 
-A practical 3-minute script for demoing AegisWeb, plus the pitch, likely questions,
+A practical 3-minute script for demoing Webx, plus the pitch, likely questions,
 and recovery plans. Tested against the local demo; no network required.
 
 ## Before you present
 
-- [ ] Chrome/Chromium installed and `python3 -m aegisweb doctor` says **READY**.
+- [ ] Chrome/Chromium installed and `python3 -m webx doctor` says **READY**.
 - [ ] `python3 -m pip install -r requirements-dev.txt` has completed.
 - [ ] Run the demo once to warm caches and confirm the flow.
 - [ ] Close notifications, Slack, email, and anything that can steal focus.
@@ -13,7 +13,7 @@ and recovery plans. Tested against the local demo; no network required.
 - [ ] If recording: 1440×900 or larger, cursor visible, voice toggle on.
 - [ ] If using ElevenLabs, generate the pack before going on stage; do not rely on
       conference Wi-Fi.
-- [ ] Keep a terminal with `python3 -m aegisweb demo --headless --pace 0` ready as a
+- [ ] Keep a terminal with `python3 -m webx demo --headless --pace 0` ready as a
       fallback.
 - [ ] Copy a successful run to `artifacts/backup/` as pre-recorded evidence:
       `cp -r artifacts/latest artifacts/backup`.
@@ -22,7 +22,7 @@ Start Mission Control:
 
 ```bash
 ./run_demo.sh
-# or: python3 -m aegisweb serve --no-open
+# or: python3 -m webx serve --no-open
 ```
 
 Open **http://127.0.0.1:8000**.
@@ -34,7 +34,7 @@ Open **http://127.0.0.1:8000**.
 > "Every AI agent demo shows the same thing: a chatbot that says it booked your
 > flight. The hard part isn't the chat. It's the web itself — cookie banners built to
 > trick you, forms that fight you, and the same value stranded in three different
-> tabs. AegisWeb is a browser agent that handles the hostile parts first."
+> tabs. Webx is a browser agent that handles the hostile parts first."
 
 ### 0:20–0:40 — The mission
 
@@ -56,7 +56,7 @@ Let the trace stream. Narrate only the moments that matter.
 **Storefront + privacy (0:40–1:05).** The browser opens Nimbus Supply Co. with the
 consent overlay.
 
-> "The easy path is 'Accept all'. AegisWeb finds 'Reject all', clicks it, and verifies
+> "The easy path is 'Accept all'. Webx finds 'Reject all', clicks it, and verifies
 > the banner is actually gone. Meanwhile it aborted three tracker requests at the
 > network layer before they loaded. That's the privacy sentinel — not a policy page,
 > an enforced action."
@@ -98,14 +98,14 @@ Show the architecture briefly (README diagram or one slide):
 
 ### 2:40–3:00 — Close
 
-> "AegisWeb isn't trying to be a general autonomous agent on day one. It's a trustworthy
+> "Webx isn't trying to be a general autonomous agent on day one. It's a trustworthy
 > browser worker: it refuses the dark patterns, verifies its own work, and leaves
 > evidence behind. Give it a brief, and it returns a result you can check. That's the
 > foundation for agents we'd actually let near our accounts."
 
 ## 30-second elevator pitch
 
-> "The web was built for humans and dark patterns, not agents. AegisWeb is a
+> "The web was built for humans and dark patterns, not agents. Webx is a
 > browser agent that rejects non-essential tracking, extracts what you asked for, moves
 > it across tabs, and proves the result with screenshots and a trace. It runs locally
 > with Python and Playwright — no API keys needed for the demo — and has an optional
@@ -113,7 +113,7 @@ Show the architecture briefly (README diagram or one slide):
 
 ## Why this is different
 
-| Typical agent demo | AegisWeb |
+| Typical agent demo | Webx |
 | --- | --- |
 | Chat transcript claims success | Browser actions plus visible receipt verification |
 | Ignores consent UI | Rejects it and verifies the state |
@@ -191,9 +191,9 @@ the trustworthy substrate, not the finished product.
 
 | Symptom | Recovery |
 | --- | --- |
-| Mission Control won't start | Port in use: `python3 -m aegisweb serve --port 8010`. The demo server itself falls back to a free port. |
-| Browser doesn't open | Run `python3 -m aegisweb doctor`. Set `AEGIS_CHROME_PATH` or install Chromium. |
-| Mission fails mid-run | The trace shows the failing step. Re-run headless: `python3 -m aegisweb demo --headless --pace 0`. A new run replaces `artifacts/latest`, so keep a backup of a successful run if you need it. |
+| Mission Control won't start | Port in use: `python3 -m webx serve --port 8010`. The demo server itself falls back to a free port. |
+| Browser doesn't open | Run `python3 -m webx doctor`. Set `WEBX_CHROME_PATH` or install Chromium. |
+| Mission fails mid-run | The trace shows the failing step. Re-run headless: `python3 -m webx demo --headless --pace 0`. A new run replaces `artifacts/latest`, so keep a backup of a successful run if you need it. |
 | Voice is silent | Browser speech needs a user gesture; click once in the dashboard. For studio audio, use local clips with `--audio`. |
 | ElevenLabs/OpenAI is down | Nothing on the critical path uses them. The demo continues silently/local-only. |
 | Projector eats the cursor | Use headless mode and the live screenshot panel; the agent's cursor overlay still appears in shots. |
@@ -218,7 +218,7 @@ the trustworthy substrate, not the finished product.
 ./run_demo.sh
 
 # CLI fallback
-python3 -m aegisweb demo --headless --slowmo 0 --pace 0 --no-narration
+python3 -m webx demo --headless --slowmo 0 --pace 0 --no-narration
 
 # Standalone proof
 python3 scripts/happy_path.py --headless
@@ -227,5 +227,5 @@ python3 scripts/happy_path.py --headless
 python3 -m pytest -q
 
 # Health check
-python3 -m aegisweb doctor
+python3 -m webx doctor
 ```

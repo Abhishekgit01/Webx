@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  AegisWeb run memory — API Gateway HTTP API, Lambda, and DynamoDB.
+  Webx run memory — API Gateway HTTP API, Lambda, and DynamoDB.
   Optional backing store for cross-run browser-agent memory. The demo works offline.
 
 Parameters:
@@ -29,14 +29,14 @@ Globals:
       - x86_64
     Environment:
       Variables:
-        AEGIS_API_TOKEN: !Ref ApiToken
+        WEBX_API_TOKEN: !Ref ApiToken
         ALLOWED_ORIGIN: !Ref AllowedOrigin
 
 Resources:
-  AegisRunsTable:
+  WebxRunsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub "aegisweb-runs-${StageName}"
+      TableName: !Sub "webx-runs-${StageName}"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: runId
@@ -50,44 +50,44 @@ Resources:
         PointInTimeRecoveryEnabled: false
       Tags:
         - Key: Project
-          Value: AegisWeb
+          Value: Webx
         - Key: Stage
           Value: !Ref StageName
 
-  AegisMemoryFunction:
+  WebxMemoryFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "aegisweb-memory-${StageName}"
-      Description: Store and retrieve AegisWeb browser-agent run records.
+      FunctionName: !Sub "webx-memory-${StageName}"
+      Description: Store and retrieve Webx browser-agent run records.
       CodeUri: lambda/
       Handler: handler.lambda_handler
       Environment:
         Variables:
-          TABLE_NAME: !Ref AegisRunsTable
+          TABLE_NAME: !Ref WebxRunsTable
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref AegisRunsTable
+            TableName: !Ref WebxRunsTable
       Events:
         CreateRun:
           Type: HttpApi
           Properties:
-            ApiId: !Ref AegisHttpApi
+            ApiId: !Ref WebxHttpApi
             Path: /runs
             Method: POST
         GetRun:
           Type: HttpApi
           Properties:
-            ApiId: !Ref AegisHttpApi
+            ApiId: !Ref WebxHttpApi
             Path: /runs/{runId}
             Method: GET
         ListRuns:
           Type: HttpApi
           Properties:
-            ApiId: !Ref AegisHttpApi
+            ApiId: !Ref WebxHttpApi
             Path: /runs
             Method: GET
 
-  AegisHttpApi:
+  WebxHttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: !Ref StageName
@@ -102,18 +102,18 @@ Resources:
           - Content-Type
           - Authorization
       Tags:
-        Project: AegisWeb
+        Project: Webx
 
 Outputs:
   ApiUrl:
-    Description: Base URL for the run-memory API. Set AEGIS_CLOUD_URL to <ApiUrl>runs.
-    Value: !Sub "https://${AegisHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
+    Description: Base URL for the run-memory API. Set WEBX_CLOUD_URL to <ApiUrl>runs.
+    Value: !Sub "https://${WebxHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
   RunsEndpoint:
-    Description: POST endpoint used by aegisweb.cloud.CloudMemory.
-    Value: !Sub "https://${AegisHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/runs"
+    Description: POST endpoint used by webx.cloud.CloudMemory.
+    Value: !Sub "https://${WebxHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/runs"
   TableName:
     Description: DynamoDB table holding run records.
-    Value: !Ref AegisRunsTable
+    Value: !Ref WebxRunsTable
   FunctionName:
     Description: Lambda function serving the API.
-    Value: !Ref AegisMemoryFunction
+    Value: !Ref WebxMemoryFunction

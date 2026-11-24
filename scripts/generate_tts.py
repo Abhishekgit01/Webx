@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the AegisWeb studio voice pack with ElevenLabs.
+"""Generate the Webx studio voice pack with ElevenLabs.
 
 Usage:
   export ELEVENLABS_API_KEY=...
@@ -11,7 +11,7 @@ The agent looks for these keys in assets/voice/:
   intro.mp3, privacy.mp3, extract.mp3, handoff.mp3, complete.mp3
 
 You can also drop any ElevenLabs export into assets/voice/complete.mp3 and run
-`python -m aegisweb demo --audio`. No API key is needed for playback.
+`python -m webx demo --audio`. No API key is needed for playback.
 """
 
 from __future__ import annotations
@@ -28,11 +28,11 @@ DEFAULT_VOICE = "21m00Tcm4TlvDq8ikWAM"  # Rachel
 DEFAULT_MODEL = "eleven_turbo_v2_5"
 
 LINES = {
-    "intro": "AegisWeb online. Mission accepted. I’ll handle the cookie banner, capture the first price, and carry it across your tabs.",
+    "intro": "Webx online. Mission accepted. I’ll handle the cookie banner, capture the first price, and carry it across your tabs.",
     "privacy": "Privacy shield engaged. All non-essential cookies rejected. Three tracker requests blocked at the network layer.",
     "extract": "Captured one hundred forty-nine dollars for the Ridgeline Field Lantern.",
     "handoff": "Cross tab handoff complete. Filling the research form now.",
-    "complete": "Mission complete. The price is logged. AegisWeb is standing by.",
+    "complete": "Mission complete. The price is logged. Webx is standing by.",
 }
 
 
@@ -66,11 +66,11 @@ def synthesize(text: str, out: Path, voice_id: str, model: str, api_key: str) ->
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate AegisWeb ElevenLabs voice clips")
+    parser = argparse.ArgumentParser(description="Generate Webx ElevenLabs voice clips")
     parser.add_argument("--text", help="Generate one custom line instead of the full pack")
     parser.add_argument("--out", default="", help="Output path for --text")
     parser.add_argument("--voice-id", default=os.getenv("ELEVENLABS_VOICE_ID", DEFAULT_VOICE))
-    parser.add_argument("--model", default=os.getenv("AEGIS_ELEVENLABS_MODEL", DEFAULT_MODEL))
+    parser.add_argument("--model", default=os.getenv("WEBX_ELEVENLABS_MODEL", DEFAULT_MODEL))
     parser.add_argument("--out-dir", default=str(PROJECT_ROOT / "assets" / "voice"))
     parser.add_argument("--force", action="store_true", help="Overwrite existing clips")
     parser.add_argument("--dry-run", action="store_true", help="Print lines without calling the API")
@@ -129,7 +129,7 @@ def main() -> int:
     print()
     print(f"Voice pack ready in {out_dir}")
     print("Run the demo with studio audio:")
-    print("  python -m aegisweb demo --audio")
+    print("  python -m webx demo --audio")
     return 0
 
 

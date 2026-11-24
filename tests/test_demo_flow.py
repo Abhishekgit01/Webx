@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from aegisweb.agent import run_agent
-from aegisweb.browser import find_browser
-from aegisweb.config import Settings
-from aegisweb.demo_server import DemoServer
-from aegisweb.events import EventBus
+from webx.agent import run_agent
+from webx.browser import find_browser
+from webx.config import Settings
+from webx.demo_server import DemoServer
+from webx.events import EventBus
 
 TASK = (
     "Navigate to the demo storefront, reject the cookie banner, grab the price of "
