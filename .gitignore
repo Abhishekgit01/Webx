@@ -15,6 +15,9 @@ assets/voice/*.wav
 assets/voice/*.m4a
 assets/voice/*.ogg
 
+# Chrome-generated extension metadata
+webx-extension/_metadata/
+
 # Local recordings / editor debris
 *.webm
 *.mp4

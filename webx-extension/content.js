@@ -37,6 +37,17 @@
     "[title*='reject' i]",
   ];
   const REJECT_TEXT = /\b(reject|decline|refuse|deny|necessary only|essential only|only necessary|only essential|do not sell|do not share)\b/i;
+  const FUZZY_REJECT_TEXT = /\b(reject|decline|necessary only|only necessary)\b/i;
+  const GOOGLE_FORMS_INPUT_SELECTOR = 'input[type="text"].whsOnd.zHQkBf';
+  const LIVE_PRICE_SELECTORS = [
+    ".product-price",
+    ".price",
+    "[data-price]",
+    "[data-testid*='price' i]",
+    "[itemprop='price']",
+    "[class*='sale-price' i]",
+    "[class*='current-price' i]",
+  ];
   const TRACKER_URL = /(google-analytics|googletagmanager|doubleclick|facebook\.net\/tr|hotjar|segment\.(?:io|com)|amplitude|mixpanel|\/shop\/track\/)/i;
 
   let autoConsent = true;
@@ -157,6 +168,39 @@
     return best;
   }
 
+  function findFuzzyRejectControl(root = document) {
+    try {
+      const controls = root.querySelectorAll("button, a");
+      for (const element of controls) {
+        if (!isVisible(element) || element.disabled) continue;
+        if (element.getAttribute("aria-disabled") === "true") continue;
+        if (element.closest("[hidden], [aria-hidden='true']")) continue;
+        const text = clampText(element.innerText || element.textContent || "", 180);
+        if (!text || !FUZZY_REJECT_TEXT.test(text)) continue;
+        if (
+          /\b(accept|allow all|agree|got it|manage|preferences|settings)\b/i.test(text) &&
+          !/\b(reject|decline|necessary)\b/i.test(text)
+        ) {
+          continue;
+        }
+        return element;
+      }
+    } catch (error) {
+      log("warn", "Fuzzy reject-control scan failed", error);
+    }
+    return null;
+  }
+
+  function pageHasConsentLanguage() {
+    try {
+      const text = clampText((document.body && document.body.innerText) || "", 30000);
+      return /cookie|consent|privacy choices|gdpr|tracking technologies|legitimate interest/i.test(text);
+    } catch (error) {
+      log("warn", "Consent language check failed", error);
+      return false;
+    }
+  }
+
   function findConsentBanner() {
     for (const selector of CONSENT_SELECTORS) {
       try {
@@ -231,8 +275,29 @@
     if (consentInFlight) return consentInFlight;
 
     consentInFlight = (async () => {
-      const banner = findConsentBanner();
-      if (!banner) {
+      let banner = findConsentBanner();
+      let button = banner ? findRejectButton(banner) : null;
+      let fuzzy = false;
+
+      if (!button) {
+        const pageControl = findFuzzyRejectControl();
+        if (pageControl) {
+          button = pageControl;
+          fuzzy = true;
+          if (!banner) {
+            try {
+              banner = pageControl.closest(
+                "[role='dialog'], [aria-modal='true'], [class*='cookie' i], [id*='cookie' i], [class*='consent' i], [id*='consent' i]"
+              );
+            } catch (error) {
+              log("warn", "Fuzzy reject-control container lookup failed", error);
+              banner = null;
+            }
+          }
+        }
+      }
+
+      if (!banner && !button) {
         if (!auto) {
           consentResult = {
             found: false,
@@ -248,42 +313,43 @@
 
       let method = "none";
       const blockers = [];
-      const button = findRejectButton(banner);
       if (button) {
         try {
           button.scrollIntoView({ block: "center", behavior: "instant" });
           button.click();
-          method = `dom:${clampText(buttonText(button), 80) || button.tagName.toLowerCase()}`;
+          method = `${fuzzy ? "fuzzy" : "dom"}:${clampText(buttonText(button), 80) || button.tagName.toLowerCase()}`;
         } catch (error) {
           blockers.push(`click failed: ${messageOf(error)}`);
         }
       }
 
-      if (method !== "none") {
+      if (method !== "none" && banner) {
         const closed = await waitForConsentClosed(banner);
         if (!closed) blockers.push("banner did not close normally");
       }
 
-      const stillVisible = findConsentBanner();
-      if (method === "none" || (stillVisible && isVisible(stillVisible))) {
-        forceHideBanner(stillVisible || banner);
-        method = method === "none" ? "dom-intervention" : `${method}+dom-intervention`;
-        if (!blockers.length) blockers.push("banner removed without a native reject control");
-        await sleep(120);
+      if (banner) {
+        const stillVisible = findConsentBanner();
+        if (method === "none" || (stillVisible && isVisible(stillVisible))) {
+          forceHideBanner(stillVisible || banner);
+          method = method === "none" ? "dom-intervention" : `${method}+dom-intervention`;
+          if (!blockers.length) blockers.push("banner removed without a native reject control");
+          await sleep(120);
+        }
       }
 
       const result = {
-        found: true,
-        rejected: true,
+        found: Boolean(banner || button),
+        rejected: method !== "none",
         method,
         blockers,
         at: new Date().toISOString(),
         url: location.href,
-        text: clampText(banner.innerText || banner.textContent || "", 180),
+        text: clampText((banner || button) ? (banner || button).innerText || (banner || button).textContent || "" : "", 180),
       };
       consentResult = result;
-      log("info", `Consent banner rejected via ${method}`);
-      if (auto) notifyBackground({ kind: "consent", ...result });
+      if (result.rejected) log("info", `Consent banner rejected via ${method}`);
+      if (auto && result.rejected) notifyBackground({ kind: "consent", ...result });
       return result;
     })().finally(() => {
       consentInFlight = null;
@@ -319,7 +385,9 @@
       if (!autoConsent) return;
       if (consentResult && consentResult.rejected && consentResult.url === location.href) return;
       try {
-        if (findConsentBanner()) await rejectConsent({ auto: true });
+        const banner = findConsentBanner();
+        const fuzzy = banner ? null : pageHasConsentLanguage() ? findFuzzyRejectControl() : null;
+        if (banner || fuzzy) await rejectConsent({ auto: true });
       } catch (error) {
         log("warn", "Automatic consent check failed", error);
       }
@@ -327,21 +395,31 @@
   }
 
   function startConsentSentinel() {
-    try {
-      observer = new MutationObserver((mutations) => {
-        if (!autoConsent) return;
-        for (const mutation of mutations) {
-          for (const node of mutation.addedNodes) {
-            if (nodeHasConsentSignal(node)) {
-              scheduleAutoConsent(450);
-              return;
+    const beginObserver = () => {
+      try {
+        const root = document.documentElement || document.body;
+        if (!root) return false;
+        observer = new MutationObserver((mutations) => {
+          if (!autoConsent) return;
+          for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+              if (nodeHasConsentSignal(node)) {
+                scheduleAutoConsent(450);
+                return;
+              }
             }
           }
-        }
-      });
-      observer.observe(document.documentElement, { childList: true, subtree: true });
-    } catch (error) {
-      log("warn", "Consent observer could not start", error);
+        });
+        observer.observe(root, { childList: true, subtree: true });
+        return true;
+      } catch (error) {
+        log("warn", "Consent observer could not start", error);
+        return false;
+      }
+    };
+
+    if (!beginObserver()) {
+      document.addEventListener("DOMContentLoaded", beginObserver, { once: true });
     }
 
     scheduleAutoConsent(900);
@@ -433,7 +511,7 @@
       metaContent('meta[property="product:price:currency"]') ||
       metaContent('meta[property="og:price:currency"]') ||
       metaContent('meta[itemprop="priceCurrency"]') ||
-      "USD"
+      ""
     );
   }
 
@@ -582,35 +660,44 @@
 
   function extractFromSelectors() {
     const selectors = [
-      "[itemprop='price']",
-      "[data-testid*='price' i]",
+      ...LIVE_PRICE_SELECTORS,
       ".a-price .a-offscreen",
       "[class*='price' i]",
       "[id*='price' i]",
     ];
     let best = null;
-    let bestScore = 0;
+    let bestScore = -1;
     for (const selector of selectors) {
       let nodes;
       try {
         nodes = document.querySelectorAll(selector);
-      } catch (_error) {
+      } catch (error) {
+        log("warn", `Price selector failed: ${selector}`, error);
         continue;
       }
       let seen = 0;
       for (const node of nodes) {
         if (seen++ > 80) break;
         if (!isVisible(node)) continue;
-        if (node.closest("[data-webx-consent], #cookie-banner, header, footer, nav")) continue;
-        const text = clampText(node.getAttribute("content") || node.textContent, 120);
+        if (
+          node.closest(
+            "[data-webx-consent], #cookie-banner, [id*='cookie' i], [class*='cookie' i], [id*='consent' i], [class*='consent' i]"
+          )
+        ) {
+          continue;
+        }
+        const text = clampText(node.getAttribute("data-price") || node.getAttribute("content") || node.textContent, 120);
         if (!text || text.length > 90) continue;
-        const parsed = parsePrice(text, metaCurrency());
+        const parsed = parsePrice(text, node.getAttribute("data-currency") || metaCurrency());
         if (!parsed) continue;
         let score = 1;
+        if (LIVE_PRICE_SELECTORS.includes(selector)) score += 4;
+        if (selector === ".price" || selector === ".product-price") score += 3;
         if (selector.includes("itemprop")) score += 5;
         if (selector.includes("data-testid")) score += 3;
         if (/^[\s$€£¥₹]?[\d.,]+[\sA-Z]{0,4}$/i.test(text)) score += 4;
-        if (node.closest("[data-webx-first-product]")) score += 8;
+        if (node.closest("[data-webx-first-product], main, article, [itemtype*='Product']")) score += 2;
+        if (node.closest("header, footer, nav")) score -= 2;
         if (score > bestScore) {
           bestScore = score;
           best = makeCapture(productNameNear(node), text, parsed.currency, "dom-selector", selector);
@@ -623,10 +710,31 @@
   function extractFromBodyText() {
     const root = document.querySelector("main") || document.body;
     if (!root) return null;
-    const text = clampText(root.innerText || root.textContent || "", 120000);
-    const match = text.match(/(?:US\$|USD|\$|€|£)\s?\d[\d,]*(?:\.\d{2})?/);
-    if (!match) return null;
-    return makeCapture(productNameNear(null), match[0], metaCurrency(), "text-regex", "main");
+    let text = "";
+    try {
+      text = clampText(root.innerText || root.textContent || "", 160000);
+    } catch (error) {
+      log("warn", "Could not read page text for the price fallback", error);
+      return null;
+    }
+    if (!text) return null;
+    const patterns = [
+      /(?:US\$|\$|€|£|₹|¥)\s?\d+(?:,\d{3})*(?:\.\d{2})/,
+      /\b\d+(?:,\d{3})*(?:\.\d{2})\s?(?:USD|EUR|GBP|CAD|AUD|INR)\b/i,
+    ];
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        return makeCapture(
+          productNameNear(null),
+          match[0],
+          metaCurrency(),
+          "text-regex",
+          root === document.body ? "body" : "main"
+        );
+      }
+    }
+    return null;
   }
 
   function extractPrice() {
@@ -655,6 +763,50 @@
     for (const form of candidates) {
       if (!isVisible(form)) continue;
       if (form.querySelector("input, textarea, select, [contenteditable='true']")) return form;
+    }
+    return null;
+  }
+
+  function isGoogleFormsPage() {
+    try {
+      const host = location.hostname.toLowerCase();
+      if (host === "docs.google.com" && location.pathname.startsWith("/forms")) return true;
+      return host === "forms.gle";
+    } catch (error) {
+      log("warn", "Google Forms URL check failed", error);
+      return false;
+    }
+  }
+
+  function findGoogleFormInput() {
+    const selectors = [
+      GOOGLE_FORMS_INPUT_SELECTOR,
+      "input.whsOnd.zHQkBf",
+      "input[type='text'][jsname='YPqjbf']",
+      "input[type='text'][aria-labelledby]",
+    ];
+    for (const selector of selectors) {
+      try {
+        for (const element of document.querySelectorAll(selector)) {
+          if (!isVisible(element) || element.disabled || element.readOnly) continue;
+          if (element.getAttribute("aria-disabled") === "true") continue;
+          return element;
+        }
+      } catch (error) {
+        log("warn", `Google Forms selector failed: ${selector}`, error);
+      }
+    }
+
+    try {
+      const form = document.querySelector("form");
+      const fields = (form || document).querySelectorAll("input[type='text']");
+      for (const field of fields) {
+        if (!isVisible(field) || field.disabled || field.readOnly) continue;
+        if (field.getAttribute("aria-disabled") === "true") continue;
+        return field;
+      }
+    } catch (error) {
+      log("warn", "Google Forms input fallback failed", error);
     }
     return null;
   }
@@ -763,7 +915,7 @@
       } else {
         field.textContent = text;
       }
-      field.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: text }));
+      field.dispatchEvent(new Event("input", { bubbles: true }));
       field.dispatchEvent(new Event("change", { bubbles: true }));
       field.blur();
       return true;
@@ -810,6 +962,17 @@
   }
 
   async function prepareForm() {
+    if (isGoogleFormsPage()) {
+      const googleField = await waitFor(findGoogleFormInput, 9000, 180);
+      return {
+        ok: true,
+        ready: Boolean(googleField),
+        reset: false,
+        googleForms: true,
+        confirmation: googleField ? false : isConfirmationVisible(),
+      };
+    }
+
     let form = findForm();
     if (form) return { ok: true, ready: true, reset: false };
 
@@ -825,10 +988,63 @@
     return { ok: true, ready: false, reset: false, confirmation: isConfirmationVisible() };
   }
 
+  async function fillGoogleForm(payload = {}) {
+    const capture = payload.capture;
+    if (!capture || !capture.price) {
+      return { ok: false, googleForms: true, error: "No captured price was provided to the Google Forms filler." };
+    }
+
+    const field = await waitFor(findGoogleFormInput, 9000, 180);
+    if (!field) {
+      return {
+        ok: false,
+        googleForms: true,
+        error: "The live Google Form short-answer field (input.whsOnd.zHQkBf) was not found or was still disabled.",
+      };
+    }
+
+    if (!setFieldValue(field, capture.price)) {
+      return { ok: false, googleForms: true, error: "The Google Forms field rejected the injected value." };
+    }
+    await sleep(180);
+
+    let actual = field.value;
+    let verified = valueMatches(actual, capture);
+    if (!verified) {
+      log("warn", "Google Forms did not register the first injection; retrying with input/change events");
+      setFieldValue(field, capture.price);
+      await sleep(220);
+      actual = field.value;
+      verified = valueMatches(actual, capture);
+    }
+
+    return {
+      ok: verified,
+      verified,
+      googleForms: true,
+      filled: { price: actual },
+      filledPrice: actual,
+      expectedPrice: capture.price,
+      field: GOOGLE_FORMS_INPUT_SELECTOR,
+      error: verified
+        ? undefined
+        : `Google Forms verification failed: expected ${capture.price}, found ${actual || "an empty value"}.`,
+    };
+  }
+
   async function fillForm(payload = {}) {
     const capture = payload.capture;
     if (!capture || !capture.price) {
       return { ok: false, error: "No captured price was provided to the form filler." };
+    }
+
+    if (isGoogleFormsPage()) {
+      try {
+        return await fillGoogleForm(payload);
+      } catch (error) {
+        log("error", "Google Forms injection failed", error);
+        return { ok: false, googleForms: true, error: messageOf(error) };
+      }
     }
 
     const form = await waitFor(findForm, 4500);
@@ -913,6 +1129,62 @@
     return receipt;
   }
 
+  function findGoogleSubmitButton() {
+    const selectors = [
+      "[role='button'][aria-label='Submit']",
+      "[role='button']",
+      "button[type='submit']",
+      "input[type='submit']",
+    ];
+    for (const selector of selectors) {
+      try {
+        for (const element of document.querySelectorAll(selector)) {
+          if (!isVisible(element) || element.disabled) continue;
+          if (element.getAttribute("aria-disabled") === "true") continue;
+          const text = buttonText(element);
+          if (!text || /\bclear\b/i.test(text)) continue;
+          if (/\bsubmit\b/i.test(text)) return element;
+        }
+      } catch (error) {
+        log("warn", `Google Forms submit selector failed: ${selector}`, error);
+      }
+    }
+    return null;
+  }
+
+  async function submitGoogleForm() {
+    const button = findGoogleSubmitButton();
+    if (!button) {
+      return {
+        ok: false,
+        googleForms: true,
+        error: "The live Google Form Submit control was not found.",
+      };
+    }
+
+    const method = `google-form:${clampText(buttonText(button), 60) || "submit"}`;
+    try {
+      button.scrollIntoView({ block: "center", behavior: "instant" });
+      button.click();
+    } catch (error) {
+      return { ok: false, googleForms: true, method, error: `The Google Forms Submit control failed: ${messageOf(error)}` };
+    }
+
+    // Google Forms posts to /formResponse and replaces the page, which destroys
+    // this content-script context. Reply now; the service worker verifies the
+    // navigated response page.
+    return {
+      ok: true,
+      submitted: true,
+      googleForms: true,
+      navigated: true,
+      method,
+      receipt: {},
+      confirmation: "Google Forms accepted the Submit click.",
+      url: location.href,
+    };
+  }
+
   async function submitForm() {
     if (isConfirmationVisible()) {
       return {
@@ -924,6 +1196,15 @@
         confirmation: clampText((document.querySelector("[data-webx-confirmation], #confirmation") || {}).innerText || "", 320),
         url: location.href,
       };
+    }
+
+    if (isGoogleFormsPage()) {
+      try {
+        return await submitGoogleForm();
+      } catch (error) {
+        log("error", "Google Forms submit failed", error);
+        return { ok: false, googleForms: true, error: messageOf(error) };
+      }
     }
 
     const form = findForm();
@@ -1045,6 +1326,8 @@
       form: {
         found: Boolean(findForm()),
         confirmationVisible: isConfirmationVisible(),
+        googleForms: isGoogleFormsPage(),
+        googleFormReady: isGoogleFormsPage() ? Boolean(findGoogleFormInput()) : false,
       },
       autoConsent,
     };

@@ -3,9 +3,13 @@
 
 const SETTINGS_KEY = "webxSettings";
 const STATE_KEY = "webxState";
+const CAPTURE_KEY = "webxCapture";
+const AUTOFILL_KEY = "webxAutoFill";
 const PHASES = ["consent", "capture", "handoff", "fill", "verify"];
 const MAX_EVENTS = 90;
 const MESSAGE_TIMEOUT = 20000;
+const DEFAULT_TARGET_FORM_URL =
+  "https://docs.google.com/forms/d/e/1FAIpQLSc9BSPi3ZV4spfwYqeCKf9SGB5ievSGG8xrU7oYlAMoIdXDDA/viewform";
 
 const DEFAULT_SETTINGS = Object.freeze({
   elevenLabsApiKey: "",
@@ -14,7 +18,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   elevenLabsSttModel: "scribe_v1",
   cloudUrl: "",
   cloudToken: "",
-  targetFormUrl: "http://127.0.0.1:4173/form/",
+  targetFormUrl: DEFAULT_TARGET_FORM_URL,
   demoUrl: "http://127.0.0.1:4173/shop/",
   autoConsent: true,
   speak: true,
@@ -25,6 +29,7 @@ let settingsCache = null;
 let stateCache = null;
 let persistChain = Promise.resolve();
 let missionInFlight = false;
+let autoFillInFlight = false;
 
 function log(level, ...args) {
   const method = level === "error" ? "error" : level === "warn" ? "warn" : "log";
@@ -181,6 +186,103 @@ async function updateState(mutator) {
   return state;
 }
 
+async function readSessionValue(key) {
+  try {
+    if (!chrome.storage.session || typeof chrome.storage.session.get !== "function") return null;
+    const stored = await chrome.storage.session.get(key);
+    return stored ? stored[key] : null;
+  } catch (error) {
+    log("warn", `Could not read ${key} from session storage`, error);
+    return null;
+  }
+}
+
+async function writeSessionValue(key, value) {
+  try {
+    if (!chrome.storage.session || typeof chrome.storage.session.set !== "function") return false;
+    await chrome.storage.session.set({ [key]: value });
+    return true;
+  } catch (error) {
+    log("warn", `Could not write ${key} to session storage`, error);
+    return false;
+  }
+}
+
+async function removeSessionValue(key) {
+  try {
+    if (chrome.storage.session && typeof chrome.storage.session.remove === "function") {
+      await chrome.storage.session.remove(key);
+    }
+  } catch (error) {
+    log("warn", `Could not clear ${key} from session storage`, error);
+  }
+}
+
+async function saveCapture(capture, sourceUrl) {
+  if (!capture || !capture.price) return null;
+  const record = {
+    capture,
+    sourceUrl: sourceUrl || capture.url || "",
+    savedAt: new Date().toISOString(),
+  };
+  await writeSessionValue(CAPTURE_KEY, record);
+  log("info", `Stored ${capture.price} in ${CAPTURE_KEY}`);
+  return record;
+}
+
+async function loadCapture() {
+  const record = await readSessionValue(CAPTURE_KEY);
+  if (record && record.capture && record.capture.price) return record;
+
+  const state = await getState();
+  if (state.capture && state.capture.price) {
+    return {
+      capture: state.capture,
+      sourceUrl: state.capture.url || "",
+      savedAt: state.capture.capturedAt || null,
+      recovered: true,
+    };
+  }
+  return null;
+}
+
+async function clearCapture() {
+  await removeSessionValue(CAPTURE_KEY);
+}
+
+function captureSignature(capture) {
+  return `${capture.capturedAt || capture.at || ""}|${capture.price || ""}|${capture.url || ""}`;
+}
+
+async function getAutoFillRecords() {
+  const records = await readSessionValue(AUTOFILL_KEY);
+  return records && typeof records === "object" ? records : {};
+}
+
+async function wasAutoFilled(tabId, capture) {
+  const records = await getAutoFillRecords();
+  const record = records[String(tabId)];
+  return Boolean(record && record.signature === captureSignature(capture));
+}
+
+async function noteAutoFill(tabId, capture) {
+  const records = await getAutoFillRecords();
+  records[String(tabId)] = {
+    signature: captureSignature(capture),
+    at: new Date().toISOString(),
+    price: capture.price,
+  };
+  const keys = Object.keys(records);
+  if (keys.length > 25) {
+    for (const key of keys.slice(0, keys.length - 25)) delete records[key];
+  }
+  await writeSessionValue(AUTOFILL_KEY, records);
+}
+
+async function clearAutoFillRecords() {
+  await removeSessionValue(AUTOFILL_KEY);
+}
+
 async function emit(component, message, options = {}) {
   const state = await getState();
   const level = options.level || "info";
@@ -218,6 +320,17 @@ function withTimeout(promise, timeout, label) {
 
 function isHttpUrl(url) {
   return typeof url === "string" && /^https?:\/\//i.test(url);
+}
+
+function isGoogleFormsUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    if (host === "docs.google.com" && parsed.pathname.startsWith("/forms")) return true;
+    return host === "forms.gle";
+  } catch (_error) {
+    return false;
+  }
 }
 
 function hostOf(url) {
@@ -287,7 +400,7 @@ async function resolveSourceTab(preferredId) {
   if (!tab) tab = await getActiveTab();
 
   if (!tab || !tab.id) {
-    throw new Error("No active tab. Open the local storefront, then try again.");
+    throw new Error("No active tab. Open a live product page, then try again.");
   }
   if (!isHttpUrl(tab.url)) {
     throw new Error("This page cannot be automated. Open a regular http(s) product page first.");
@@ -362,7 +475,7 @@ async function waitForTabReady(tabId, timeout = 16000) {
     await sleep(220);
   }
   throw new Error(
-    "The target form did not load. Start the local demo with ./run_demo.sh and check the target URL in settings."
+    "The target page did not load. Check the target form URL in settings and try again."
   );
 }
 
@@ -386,7 +499,7 @@ async function ensureTargetTab() {
 }
 
 async function prepareTarget(tabId) {
-  const prepared = await sendToTab(tabId, "form:prepare", null, 8000);
+  const prepared = await sendToTab(tabId, "form:prepare", null, 12000);
   if (prepared && prepared.ok && prepared.ready) return;
 
   await emit("Handoff", "The target was showing a prior receipt; reloading the form", {
@@ -401,7 +514,7 @@ async function prepareTarget(tabId) {
   await sleep(350);
   await waitForTabReady(tabId);
   await ensureContentScript(tabId);
-  const retry = await sendToTab(tabId, "form:prepare", null, 8000);
+  const retry = await sendToTab(tabId, "form:prepare", null, 12000);
   if (!retry || !retry.ok || !retry.ready) {
     const error = new Error("The target page did not show a fillable form. Check the target URL in settings.");
     error.phase = "fill";
@@ -409,14 +522,63 @@ async function prepareTarget(tabId) {
   }
 }
 
+async function confirmGoogleSubmission(tabId, timeout = 20000) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    const tab = await getTab(tabId);
+    if (!tab || !tab.id) {
+      return {
+        ok: false,
+        submitted: false,
+        googleForms: true,
+        error: "The Google Form tab closed before confirmation.",
+      };
+    }
+    const url = tab.url || "";
+    if (/\/formResponse\b/i.test(url)) {
+      if (tab.status && tab.status !== "complete") {
+        await sleep(250);
+        continue;
+      }
+      let confirmation = "Your response has been recorded.";
+      try {
+        await ensureContentScript(tabId);
+        const scan = await sendToTab(tabId, "page:scan", null, 8000);
+        if (scan && scan.form && scan.form.confirmationVisible) {
+          confirmation = "Your response has been recorded.";
+        }
+      } catch (error) {
+        log("warn", "Could not re-inspect the Google Forms response page", messageOf(error, 160));
+      }
+      return {
+        ok: true,
+        submitted: true,
+        googleForms: true,
+        method: "google-form:formResponse",
+        receipt: {},
+        confirmation,
+        url,
+      };
+    }
+    await sleep(300);
+  }
+  return {
+    ok: false,
+    submitted: false,
+    googleForms: true,
+    error: "Google Forms did not reach its response page. Check the form and try again.",
+  };
+}
+
 async function deliverToTarget({ capture, sourceUrl }) {
   const settings = await getSettings();
   const target = await ensureTargetTab();
+  const targetUrl = target.url || settings.targetFormUrl;
   await updateState((state) => {
     state.metrics.tabs = 2;
     state.phases.handoff = "done";
   });
-  await emit("Handoff", `Target form ready on ${hostOf(target.url || settings.targetFormUrl)}`, {
+  await emit("Handoff", `Target form ready on ${hostOf(targetUrl)}`, {
     phase: "handoff",
     phaseStatus: "done",
   });
@@ -434,6 +596,7 @@ async function deliverToTarget({ capture, sourceUrl }) {
     error.phase = "fill";
     throw error;
   }
+  await noteAutoFill(target.id, capture);
   await updateState((state) => {
     state.lastFill = fill;
     state.phases.fill = "done";
@@ -448,7 +611,27 @@ async function deliverToTarget({ capture, sourceUrl }) {
     phase: "verify",
     phaseStatus: "active",
   });
-  const submit = await sendToTab(target.id, "form:submit", null, 12000);
+  const googleTarget = isGoogleFormsUrl(target.url || settings.targetFormUrl);
+  let submit;
+  try {
+    submit = await sendToTab(target.id, "form:submit", null, 12000);
+  } catch (error) {
+    if (!googleTarget) {
+      const wrapped = new Error(messageOf(error));
+      wrapped.phase = "verify";
+      throw wrapped;
+    }
+    log("info", "Google Forms navigated before replying; waiting for the response page", messageOf(error, 160));
+  }
+  if (googleTarget) {
+    const confirmed = await confirmGoogleSubmission(target.id);
+    if (!confirmed.ok) {
+      const error = new Error(confirmed.error || "The Google Form did not confirm the submission.");
+      error.phase = "verify";
+      throw error;
+    }
+    submit = { ...(submit || {}), ...confirmed };
+  }
   if (!submit || !submit.ok || !submit.submitted) {
     const error = new Error((submit && submit.error) || "The form did not confirm the submission.");
     error.phase = "verify";
@@ -467,13 +650,115 @@ async function deliverToTarget({ capture, sourceUrl }) {
 
   return {
     targetId: target.id,
-    targetUrl: target.url || settings.targetFormUrl,
+    targetUrl,
     fill,
     submit,
   };
 }
 
-async function resetRunState({ clearCapture = false } = {}) {
+async function maybeAutoFillGoogleForm(tabId, url, trigger = "tab") {
+  if (autoFillInFlight || missionInFlight) return { ok: false, skipped: true, reason: "busy" };
+  if (!isGoogleFormsUrl(url)) return { ok: false, skipped: true, reason: "not-google-forms" };
+  if (/\/formResponse\b/i.test(url)) return { ok: false, skipped: true, reason: "confirmation-page" };
+
+  let tab = await getTab(tabId);
+  if (!tab || !tab.id || !isGoogleFormsUrl(tab.url || url)) {
+    return { ok: false, skipped: true, reason: "tab-changed" };
+  }
+  if (tab.status && tab.status !== "complete") {
+    try {
+      tab = await waitForTabReady(tabId, 15000);
+    } catch (error) {
+      log("warn", "Google Form tab was not ready for auto-fill", messageOf(error, 160));
+      return { ok: false, error: messageOf(error, 200) };
+    }
+  }
+
+  const record = await loadCapture();
+  if (!record) {
+    log("info", "Google Form detected, but no captured price is stored");
+    return { ok: false, skipped: true, reason: "no-capture" };
+  }
+
+  const capture = record.capture;
+  if (await wasAutoFilled(tabId, capture)) {
+    log("info", "The stored capture is already in this Google Form tab");
+    return { ok: false, skipped: true, reason: "already-filled" };
+  }
+
+  autoFillInFlight = true;
+  try {
+    await updateState((state) => {
+      state.capture = capture;
+      state.phases.capture = "done";
+      state.phases.handoff = "active";
+    });
+    await emit("Handoff", `Google Form detected on ${trigger}; injecting ${capture.price}`, {
+      phase: "handoff",
+      phaseStatus: "active",
+      data: { tabId, trigger, sourceUrl: record.sourceUrl || capture.url || "" },
+    });
+
+    await ensureContentScript(tabId);
+    const fill = await sendToTab(
+      tabId,
+      "form:fill",
+      {
+        capture,
+        sourceUrl: record.sourceUrl || capture.url || "",
+        notes: `Captured ${capture.price} from ${capture.name} via ${capture.method}. Auto-filled by Webx on tab switch.`,
+      },
+      15000
+    );
+    if (!fill || !fill.ok) {
+      throw new Error((fill && fill.error) || "The Google Form did not accept the injected value.");
+    }
+
+    await noteAutoFill(tabId, capture);
+    await updateState((state) => {
+      state.capture = capture;
+      state.lastFill = fill;
+      state.metrics.tabs = Math.max(2, state.metrics.tabs);
+      state.phases.capture = "done";
+      state.phases.handoff = "done";
+      state.phases.fill = "done";
+    });
+    await emit("Fill", `Auto-filled the live Google Form with ${fill.filledPrice || capture.price}`, {
+      phase: "fill",
+      phaseStatus: "done",
+      data: {
+        tabId,
+        trigger,
+        field: fill.field || 'input[type="text"].whsOnd.zHQkBf',
+        verified: Boolean(fill.verified),
+      },
+    });
+    await emit("Handoff", "Google Form filled. Review the value and click Submit when ready.", {
+      phase: "handoff",
+      phaseStatus: "done",
+    });
+    return { ok: true, fill, capture, tabId, trigger };
+  } catch (error) {
+    const message = messageOf(error);
+    log("warn", "Google Form auto-fill failed", message);
+    await updateState((state) => {
+      state.phases.handoff = state.phases.handoff === "done" ? "done" : "error";
+      state.phases.fill = "error";
+    });
+    await emit("Fill", `Google Form auto-fill failed: ${message}`, {
+      level: "warn",
+      phase: "fill",
+      phaseStatus: "error",
+      data: { tabId, trigger },
+    });
+    return { ok: false, error: message };
+  } finally {
+    autoFillInFlight = false;
+  }
+}
+
+async function resetRunState({ clearCapture: shouldClearCapture = false } = {}) {
+  if (shouldClearCapture) await clearCapture();
   await updateState((state) => {
     state.status = "running";
     state.error = null;
@@ -483,7 +768,7 @@ async function resetRunState({ clearCapture = false } = {}) {
     state.aws = { status: "idle", detail: "Run in progress", runId: null, syncedAt: null };
     state.lastFill = null;
     state.lastRun = null;
-    if (clearCapture) state.capture = null;
+    if (shouldClearCapture) state.capture = null;
   });
 }
 
@@ -680,6 +965,7 @@ async function runMission() {
       state.metrics.trackersBlocked = Math.max(state.metrics.trackersBlocked, trackerCount);
       state.phases.capture = "done";
     });
+    await saveCapture(capture, sourceTab.url || capture.url);
     await emit("Capture", `Captured ${capture.price} — ${capture.name}`, {
       phase: "capture",
       phaseStatus: "done",
@@ -716,8 +1002,8 @@ async function runMission() {
 
 async function applyStoredCapture() {
   if (missionInFlight) return { ok: false, error: "A mission is already running." };
-  const existing = await getState();
-  if (!existing.capture || !existing.capture.price) {
+  const stored = await loadCapture();
+  if (!stored || !stored.capture || !stored.capture.price) {
     return {
       ok: false,
       error: "No captured price yet. Open a product page and run a capture first.",
@@ -727,13 +1013,15 @@ async function applyStoredCapture() {
   missionInFlight = true;
   const started = Date.now();
   const runId = newRunId();
-  const capture = existing.capture;
+  const capture = stored.capture;
+  const sourceUrl = stored.sourceUrl || capture.url || "";
   let phase = "handoff";
 
   try {
     const settings = await getSettings();
     await resetRunState({ clearCapture: false });
     await updateState((state) => {
+      state.capture = capture;
       state.phases.consent = "skipped";
       state.phases.capture = "done";
       state.metrics.tabs = 2;
@@ -742,12 +1030,12 @@ async function applyStoredCapture() {
       phase: "handoff",
       phaseStatus: "active",
     });
-    const delivery = await deliverToTarget({ capture, sourceUrl: capture.url });
+    const delivery = await deliverToTarget({ capture, sourceUrl });
     return await finalizeRun({
       runId,
       started,
       capture,
-      sourceUrl: capture.url,
+      sourceUrl,
       delivery,
     });
   } catch (error) {
@@ -814,6 +1102,7 @@ async function captureFromActiveTab() {
     state.phases.capture = "done";
     state.phases.consent = state.phases.consent === "idle" ? "skipped" : state.phases.consent;
   });
+  await saveCapture(capture, tab.url || capture.url);
   await emit("Capture", `Captured ${capture.price} — ${capture.name}`, {
     phase: "capture",
     phaseStatus: "done",
@@ -951,6 +1240,8 @@ function parseIntent(raw) {
 async function resetState() {
   if (missionInFlight) return { ok: false, error: "Wait for the current mission to finish before resetting." };
   stateCache = defaultState();
+  await clearCapture();
+  await clearAutoFillRecords();
   await persistState();
   await emit("Mission", "Session reset", { phase: null });
   return { ok: true, state: stateCache };
@@ -994,7 +1285,7 @@ async function runCommand(text) {
         result = {
           ok: false,
           error:
-            "I did not catch a known intent. Try “get price and apply to target sheet”, “reject cookies”, “capture price”, or “fill form”.",
+            "I did not catch a known intent. Try “get price and apply to target form”, “reject cookies”, “capture price”, or “fill form”.",
         };
         await emit("Command", "No actionable intent found", { level: "warn" });
     }
@@ -1052,10 +1343,20 @@ async function handleMessage(message, sender) {
       return captureFromActiveTab();
     case "form:apply":
       return applyStoredCapture();
+    case "form:autoFill": {
+      const tab = payload.tabId ? await getTab(payload.tabId) : await getActiveTab();
+      if (!tab || !tab.id) return { ok: false, error: "No active tab is available for auto-fill." };
+      return maybeAutoFillGoogleForm(tab.id, tab.url, "manual");
+    }
     case "state:reset":
       return resetState();
     case "aws:sync":
       return syncLastRun();
+    case "tab:openTarget": {
+      const tab = await ensureTargetTab();
+      await emit("Navigation", `Opened ${tab.url || DEFAULT_TARGET_FORM_URL}`);
+      return { ok: true, tabId: tab.id, url: tab.url || DEFAULT_TARGET_FORM_URL };
+    }
     case "tab:openDemo": {
       const settings = await getSettings();
       const tab = await openOrFocus(settings.demoUrl);
@@ -1090,6 +1391,43 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onStartup.addListener(() => {
   getSettings().catch((error) => log("warn", "Settings initialization failed", error));
 });
+
+if (chrome.tabs && chrome.tabs.onActivated) {
+  chrome.tabs.onActivated.addListener((activeInfo) => {
+    const tabId = activeInfo && activeInfo.tabId;
+    if (!tabId) return;
+    getTab(tabId)
+      .then((tab) => {
+        if (tab && isGoogleFormsUrl(tab.url)) return maybeAutoFillGoogleForm(tabId, tab.url, "activated");
+        return null;
+      })
+      .catch((error) => log("warn", "Tab activation handling failed", error));
+  });
+}
+
+if (chrome.tabs && chrome.tabs.onUpdated) {
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (!tab || !tab.active) return;
+    const url = (changeInfo && changeInfo.url) || tab.url;
+    if (!isGoogleFormsUrl(url)) return;
+    if (changeInfo && changeInfo.status && changeInfo.status !== "complete") return;
+    maybeAutoFillGoogleForm(tabId, url, "updated").catch((error) =>
+      log("warn", "Tab update handling failed", error)
+    );
+  });
+}
+
+if (chrome.tabs && chrome.tabs.onRemoved) {
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    getAutoFillRecords()
+      .then((records) => {
+        if (!records[String(tabId)]) return false;
+        delete records[String(tabId)];
+        return writeSessionValue(AUTOFILL_KEY, records);
+      })
+      .catch(() => {});
+  });
+}
 
 if (chrome.sidePanel && typeof chrome.sidePanel.setPanelBehavior === "function") {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});

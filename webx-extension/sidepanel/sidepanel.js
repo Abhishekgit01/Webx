@@ -2,9 +2,11 @@
 "use strict";
 
 const $ = (id) => document.getElementById(id);
+const DEFAULT_TARGET_FORM_URL =
+  "https://docs.google.com/forms/d/e/1FAIpQLSc9BSPi3ZV4spfwYqeCKf9SGB5ievSGG8xrU7oYlAMoIdXDDA/viewform";
 const PHASES = ["consent", "capture", "handoff", "fill", "verify"];
 const QUICK_COMMANDS = {
-  mission: "Get price and apply to target sheet",
+  mission: "Get price and apply to target form",
   privacy: "Reject all cookies",
   capture: "Capture the price",
   fill: "Fill the target form",
@@ -381,7 +383,7 @@ async function loadSettings() {
       elevenLabsVoiceId: "21m00Tcm4TlvDq8ikWAM",
       elevenLabsModel: "eleven_turbo_v2_5",
       elevenLabsSttModel: "scribe_v1",
-      targetFormUrl: "http://127.0.0.1:4173/form/",
+      targetFormUrl: DEFAULT_TARGET_FORM_URL,
       autoConsent: true,
       speak: true,
       syncCloud: false,
@@ -409,7 +411,7 @@ function populateSettingsForm() {
     "settings-voice": settings.elevenLabsVoiceId || "21m00Tcm4TlvDq8ikWAM",
     "settings-tts-model": settings.elevenLabsModel || "eleven_turbo_v2_5",
     "settings-stt-model": settings.elevenLabsSttModel || "scribe_v1",
-    "settings-target": settings.targetFormUrl || "http://127.0.0.1:4173/form/",
+    "settings-target": settings.targetFormUrl || DEFAULT_TARGET_FORM_URL,
     "settings-cloud": settings.cloudUrl || "",
     "settings-token": settings.cloudToken || "",
   };
@@ -895,8 +897,8 @@ async function openDemo() {
   ui.actionPending = true;
   syncControls();
   try {
-    await send("tab:openDemo");
-    showToast("Opened the local storefront. Start ./run_demo.sh if it is not running.");
+    await send("tab:openTarget");
+    showToast("Opened the target form.");
   } catch (error) {
     showToast(messageOf(error), true);
   } finally {

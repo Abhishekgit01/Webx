@@ -42,7 +42,7 @@
           </span>
         </div>
         <h1 id="hero-title">Point. Speak. <em>Done.</em></h1>
-        <p class="hero-sub" id="status-copy">Open a product page, then ask Webx to move the price into your target form.</p>
+        <p class="hero-sub" id="status-copy">Open a live product page, then ask Webx to move the price into your target form.</p>
 
         <div class="voice-zone" id="voice-zone">
           <span class="voice-orbit" aria-hidden="true"></span>
@@ -64,7 +64,7 @@
 
       <form class="command-bar" id="command-form">
         <label class="sr-only" for="command-input">Command</label>
-        <input id="command-input" name="command" type="text" placeholder="Get price and apply to target sheet" autocomplete="off" spellcheck="false">
+        <input id="command-input" name="command" type="text" placeholder="Get price and apply to target form" autocomplete="off" spellcheck="false">
         <button class="send-button" type="submit" aria-label="Run command">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 12h14M12 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -151,7 +151,7 @@
       </section>
 
       <footer class="footer">
-        <button class="text-button" id="open-demo" type="button">Open local storefront</button>
+        <button class="text-button" id="open-demo" type="button">Open target form</button>
         <span>Local-first · no telemetry</span>
       </footer>
     </main>
@@ -203,13 +203,13 @@
           <h3>Orchestration</h3>
           <label class="field">
             <span>Target form URL</span>
-            <input id="settings-target" type="url" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:4173/form/">
+            <input id="settings-target" type="url" autocomplete="off" spellcheck="false" placeholder="https://docs.google.com/forms/…">
           </label>
           <label class="check-row">
             <input id="settings-auto-consent" type="checkbox">
             <span>Reject consent banners automatically</span>
           </label>
-          <p class="field-note">The local demo target is the research form started by <code>./run_demo.sh</code>.</p>
+          <p class="field-note">Switch to a matching Google Forms tab and Webx injects the last captured price automatically.</p>
         </section>
 
         <section class="settings-section">

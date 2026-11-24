@@ -5,7 +5,10 @@ Manifest V3 Chrome extension. Both run the same storefront-to-form workflow: rej
 cookie banner, block tracker requests, extract the first product price, carry the
 value across tabs, and verify a form submission.
 
-The demo is deterministic and offline. No API keys or cloud account are required.
+The extension also works on live pages: it rejects cookie banners with a fuzzy
+text pass, reads live product prices, and injects the value into a Google Form when
+you switch tabs. The Python demo stays deterministic and offline. No API keys or
+cloud account are required.
 
 ## Features
 
@@ -15,6 +18,8 @@ The demo is deterministic and offline. No API keys or cloud account are required
 - Cookie-consent rejection with verified state
 - Network-level tracker blocking
 - Product extraction with data-attribute, JSON-LD, and text fallbacks
+- Live-site extension path: fuzzy `Reject`/`Decline`/`Necessary Only` matching,
+  live price selectors, Google Forms injection, and tab-switch auto-fill
 - Cross-tab memory with explicit handoffs
 - Form fill, submission, and receipt verification
 - FastAPI dashboard with a live SSE event trace and screenshots
@@ -69,20 +74,28 @@ not import the `webx` package.
 
 ## Chrome extension
 
-`webx-extension/` is a Manifest V3 side-panel agent with no build step. It runs
-the same demo workflow against the same local pages.
+`webx-extension/` is a Manifest V3 side-panel agent with no build step. It defaults
+to live pages and the provided Google Form; the deterministic local storefront
+remains a fallback.
 
-1. Start the demo server with `./run_demo.sh`.
-2. Open `chrome://extensions`, enable **Developer mode**, and choose **Load unpacked**.
-3. Select the `webx-extension/` directory.
-4. Open <http://127.0.0.1:4173/shop/> and click the Webx toolbar icon.
-5. Click **Run mission**, or type `Get price and apply to target sheet`.
+1. Open `chrome://extensions`, enable **Developer mode**, and choose **Load unpacked**.
+2. Select the `webx-extension/` directory.
+3. Open a live product page with a visible price and click the Webx toolbar icon.
+4. Click **Capture the price**, then open the target Google Form. Switching to the
+   form tab injects the stored value automatically.
+5. For a full run, click **Run mission** or type
+   `Get price and apply to target form`. Webx rejects consent, captures the price,
+   fills and submits the form, and verifies Google's response page.
 
-The side panel rejects the local consent banner, captures `$149.00`, opens the
-research form, fills and submits it, and verifies the receipt. Voice uses ElevenLabs
-when a key is configured in panel settings; browser speech and typed commands are
-the fallbacks. The optional AWS run-memory endpoint is configured in the same panel,
-and a failed sync never blocks a mission.
+The target form URL is configurable in panel settings. Voice uses ElevenLabs when a
+key is configured; browser speech and typed commands are the fallbacks. The optional
+AWS run-memory endpoint is configured in the same panel, and a failed sync never
+blocks a mission.
+
+For the offline fallback, start `./run_demo.sh`, open
+<http://127.0.0.1:4173/shop/>, and set the target form URL to
+`http://127.0.0.1:4173/form/`. The mission then captures `$149.00` from the demo
+storefront and verifies the local receipt.
 
 See [`webx-extension/README.md`](webx-extension/README.md) for load steps,
 commands, settings, permissions, and troubleshooting.
