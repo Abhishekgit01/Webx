@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AegisWeb run memory — API Gateway HTTP API, Lambda, and DynamoDB.
+  Optional backing store for cross-run browser-agent memory. The demo works offline.
+
+Parameters:
+  StageName:
+    Type: String
+    Default: prod
+    AllowedPattern: "[a-zA-Z0-9_-]+"
+    Description: Stage name for the HTTP API.
+  ApiToken:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Optional shared bearer token. Leave empty to allow unauthenticated writes.
+  AllowedOrigin:
+    Type: String
+    Default: "*"
+    Description: CORS origin allowed to POST run records.
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 10
+    MemorySize: 256
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        AEGIS_API_TOKEN: !Ref ApiToken
+        ALLOWED_ORIGIN: !Ref AllowedOrigin
+
+Resources:
+  AegisRunsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "aegisweb-runs-${StageName}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: runId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: runId
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false
+      Tags:
+        - Key: Project
+          Value: AegisWeb
+        - Key: Stage
+          Value: !Ref StageName
+
+  AegisMemoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "aegisweb-memory-${StageName}"
+      Description: Store and retrieve AegisWeb browser-agent run records.
+      CodeUri: lambda/
+      Handler: handler.lambda_handler
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref AegisRunsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AegisRunsTable
+      Events:
+        CreateRun:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AegisHttpApi
+            Path: /runs
+            Method: POST
+        GetRun:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AegisHttpApi
+            Path: /runs/{runId}
+            Method: GET
+        ListRuns:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AegisHttpApi
+            Path: /runs
+            Method: GET
+
+  AegisHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref StageName
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref AllowedOrigin
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+      Tags:
+        Project: AegisWeb
+
+Outputs:
+  ApiUrl:
+    Description: Base URL for the run-memory API. Set AEGIS_CLOUD_URL to <ApiUrl>runs.
+    Value: !Sub "https://${AegisHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/"
+  RunsEndpoint:
+    Description: POST endpoint used by aegisweb.cloud.CloudMemory.
+    Value: !Sub "https://${AegisHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/runs"
+  TableName:
+    Description: DynamoDB table holding run records.
+    Value: !Ref AegisRunsTable
+  FunctionName:
+    Description: Lambda function serving the API.
+    Value: !Ref AegisMemoryFunction

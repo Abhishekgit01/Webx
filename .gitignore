@@ -1,0 +1,21 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+
+# Generated at runtime
+artifacts/
+assets/voice/*.mp3
+assets/voice/*.wav
+assets/voice/*.m4a
+assets/voice/*.ogg
+
+# Local recordings / editor debris
+*.webm
+*.mp4
+.DS_Store
