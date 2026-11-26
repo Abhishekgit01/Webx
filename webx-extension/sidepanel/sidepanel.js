@@ -2,8 +2,7 @@
 "use strict";
 
 const $ = (id) => document.getElementById(id);
-const DEFAULT_TARGET_FORM_URL =
-  "https://docs.google.com/forms/d/e/1FAIpQLSc9BSPi3ZV4spfwYqeCKf9SGB5ievSGG8xrU7oYlAMoIdXDDA/viewform";
+const DEFAULT_TARGET_FORM_URL = "http://127.0.0.1:4173/form/";
 const PHASES = ["consent", "capture", "handoff", "fill", "verify"];
 const QUICK_COMMANDS = {
   mission: "Get price and apply to target form",
